@@ -1,14 +1,9 @@
 from typeguard import typechecked
 from typing import TypedDict, Optional, List
 
-class TaxonDoc(TypedDict):
-    # TO DO : add date
-    _id: str #uuid
-    _rev: str
-    genomeColl: List[str] #uuid list
-    name: str
-    taxid : Optional[int]
-    current : str #uuid
+TaxonDoc = TypedDict("TaxonDoc", 
+{"_id": str, "_rev": str, "genomeColl": List[str], "name": str, "taxid": Optional[int], "current": str}, 
+total=False)
 
 class PositivePutAnswer(TypedDict):
     ok : bool
@@ -33,7 +28,7 @@ class TaxonDB():
             return None
         return doc['docs'][0]
     
-    def create_insert_doc(self, name: str, taxid: int = None) -> {}:
+    def create_insert_doc(self, name: str, taxid: int = None) -> TaxonDoc:
         return {
             "_id" : self.wrapper.couchGenerateUUID(),
             "name": name,

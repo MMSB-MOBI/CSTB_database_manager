@@ -1,12 +1,7 @@
 from typeguard import typechecked
 from typing import TypedDict, Optional
 
-class GenomeDoc(TypedDict):
-    #TO DO : add size, GCF, ASM
-    _id: str #uuid
-    _rev: str
-    taxon: str #uuid
-    fasta_md5: str
+GenomeDoc = TypedDict("GenomeDoc", {"_id": str, "_rev": str, "taxon": str, "fasta_md5": str}, total=False)
 
 class PositivePutAnswer(TypedDict): #Probably not define this type here, it's in taxonDB too.
     ok : bool
@@ -28,7 +23,7 @@ class GenomeDB():
             return None
         return doc['docs'][0]
     
-    def create_insert_doc(self, fasta_md5:str) -> {}:
+    def create_insert_doc(self, fasta_md5:str) -> GenomeDoc:
         return {
             "_id": self.wrapper.couchGenerateUUID(),
             "fasta_md5" : fasta_md5

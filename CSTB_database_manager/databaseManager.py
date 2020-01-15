@@ -5,6 +5,7 @@ import json
 from typing import TypedDict, Tuple, Dict
 from typeguard import typechecked
 import hashlib
+import copy
 
 class ConfigType(TypedDict):
     url: str
@@ -51,7 +52,6 @@ class databaseManager():
     
     def addGenome(self, fasta: str, name: str, taxid: int = None):
         print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}")
-        
         # Check if fasta already exists in genomeDB
         hasher = hashlib.md5()
         with open(fasta, "rb") as f:
@@ -73,9 +73,8 @@ class databaseManager():
 
         # Get final docs after match making
         final_genomeDB_doc, final_taxonDB_doc = self.makeMatching(genomeDB_doc, taxonDB_doc)
-        
         #Insert final docs if change
-        
+
         if genomeDB_doc != final_genomeDB_doc:
             print("Insert genome")
             self.genomedb.add(final_genomeDB_doc)
@@ -84,18 +83,46 @@ class databaseManager():
             print("Insert taxon")
             self.taxondb.add(final_taxonDB_doc)
 
-    def makeMatching(self, genomeDB_doc: {}, taxonDB_doc:{}) -> Tuple[genomeDBHandler.GenomeDoc, taxonDBHandler.TaxonDoc]:
+    def makeMatching(self, genomeDB_doc: genomeDBHandler.GenomeDoc, taxonDB_doc:taxonDBHandler.TaxonDoc) -> Tuple[genomeDBHandler.GenomeDoc, taxonDBHandler.TaxonDoc]:
+        new_genome_doc = copy.deepcopy(genomeDB_doc)
+        new_taxon_doc = copy.deepcopy(taxonDB_doc)
 
         if not genomeDB_doc.get("taxon") and not taxonDB_doc.get("current"): #All is new. Make correspondance between the 2.
-            genomeDB_doc["taxon"] = taxonDB_doc["_id"]
-            taxonDB_doc["current"] = genomeDB_doc["_id"]
-            taxonDB_doc["genomeColl"] = [genomeDB_doc["_id"]]
-            return genomeDB_doc, taxonDB_doc
+            new_genome_doc["taxon"] = taxonDB_doc["_id"]
+            new_taxon_doc["current"] = genomeDB_doc["_id"]
+            new_taxon_doc["genomeColl"] = [genomeDB_doc["_id"]]
+    
+        elif genomeDB_doc.get("taxon") and taxonDB_doc.get("current"):
+            if genomeDB_doc["taxon"] == taxonDB_doc["_id"]:
+                if taxonDB_doc["current"] == genomeDB_doc["_id"]:
+                    print("Genome already exists as current version")
+                elif genomeDB_doc["_id"] in taxonDB_doc["genomeColl"]:
+                    
+                    print(f'This genome exists as an older version of Taxon (name : {taxonDB_doc["name"]}, taxid : {taxonDB_doc["taxid"]})')
+                    # Do we really want to replace current version by old ? Maybe better to create function dedicated to this in taxonDB ? 
+                else:
+                    raise Exception("Taxon link in Genome but no Genome link in Taxon.")
+            else:
+                current_taxon = self.wrapper.couchGetDoc(self.taxondb.db_name, genomeDB_doc["taxon"])#Not really useful interrogation, just for print information
+                print(f'Genome already exists but associated with an other Taxon (name : {current_taxon["name"]}, taxid : {current_taxon["taxid"]}). Update this taxon or delete genome if you really want to add it.')
+        
+        elif not genomeDB_doc.get("taxon") and taxonDB_doc.get("current"):
+            print(f'New genome version for taxon {taxonDB_doc["name"]}')
+            new_genome_doc["taxon"] = taxonDB_doc["_id"]
+            new_taxon_doc["current"] = genomeDB_doc["_id"]
+            new_taxon_doc["genomeColl"].append(genomeDB_doc["_id"])
+        
+        elif genomeDB_doc.get("taxon") and not taxonDB_doc.get("current"):
+            #Genome exists with another taxon
+            current_taxon = self.wrapper.couchGetDoc(self.taxondb.db_name, genomeDB_doc["taxon"])
+            print(f'Genome already exists but associated with an other Taxon (name : {current_taxon["name"]}, taxid : {current_taxon["taxid"]}). Update this taxon or delete genome if you really want to add it.')
+            
+        else:
+            #Really weird if it goes here
+            print("WARN: CASE NOT HANDLED")
+            exit()
 
-        if genomeDB_doc.get("taxon") and taxonDB_doc.get("current"):
-            if genomeDB_doc["taxon"] == taxonDB_doc["_id"] and taxonDB_doc["current"] == genomeDB_doc["_id"]:
-                print("Genome already exists and it's already current version")
-                return genomeDB_doc, taxonDB_doc
+        return new_genome_doc, new_taxon_doc
 
         
 
