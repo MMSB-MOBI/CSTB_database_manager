@@ -20,7 +20,14 @@ if __name__ == "__main__":
     db = dbManager.databaseManager(ARGS["--config"])
 
     # Add completely new genome with taxid
-    db.addGenome('../data_tests/vibrio_cholerae_10k.fna', "Vibrio cholerae O1 biovar El Tor str. N16961", 243277)
+    #db.addGenome('../data_tests/vibrio_cholerae_10k.fna', "Vibrio cholerae O1 biovar El Tor str. N16961", 243277)
 
-    
-    
+    #Add same genome
+    #db.addGenome('../data_tests/vibrio_cholerae_10k.fna', "Vibrio cholerae O1 biovar El Tor str. N16961", 243277)
+
+    #Add an other
+    db.addGenome("../data_tests/ecoli_O157_1_10k.fna", "Escherichia coli O157:H7 str. EDL933", 155864)
+
+    #Add other version
+    db.addGenome("../data_tests/ecoli_O157_2_10k.fna", "Escherichia coli O157:H7 str. EDL933", 155864)
+
