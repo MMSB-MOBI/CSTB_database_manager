@@ -1,0 +1,7 @@
+{
+    "url": "http://localhost:5984",
+    "user": "couch_agent",
+    "password": "couch",
+    "taxondb_name": "new_taxon_db",
+    "genomedb_name": "genome_db"
+}
