@@ -72,18 +72,30 @@ class databaseManager():
             taxonDB_doc = self.taxondb.create_insert_doc(name, taxid)
 
         # Get final docs after match making
-        genomeDB_doc, taxonDB_doc = self.makeMatching(genomeDB_doc, taxonDB_doc)
+        final_genomeDB_doc, final_taxonDB_doc = self.makeMatching(genomeDB_doc, taxonDB_doc)
         
-        #Insert final docs
-        self.genomedb.add(genomeDB_doc)
-        self.taxondb.add(taxonDB_doc)
+        #Insert final docs if change
+        
+        if genomeDB_doc != final_genomeDB_doc:
+            print("Insert genome")
+            self.genomedb.add(final_genomeDB_doc)
+        
+        if taxonDB_doc != final_taxonDB_doc:
+            print("Insert taxon")
+            self.taxondb.add(final_taxonDB_doc)
 
     def makeMatching(self, genomeDB_doc: {}, taxonDB_doc:{}) -> Tuple[genomeDBHandler.GenomeDoc, taxonDBHandler.TaxonDoc]:
+
         if not genomeDB_doc.get("taxon") and not taxonDB_doc.get("current"): #All is new. Make correspondance between the 2.
             genomeDB_doc["taxon"] = taxonDB_doc["_id"]
             taxonDB_doc["current"] = genomeDB_doc["_id"]
             taxonDB_doc["genomeColl"] = [genomeDB_doc["_id"]]
             return genomeDB_doc, taxonDB_doc
+
+        if genomeDB_doc.get("taxon") and taxonDB_doc.get("current"):
+            if genomeDB_doc["taxon"] == taxonDB_doc["_id"] and taxonDB_doc["current"] == genomeDB_doc["_id"]:
+                print("Genome already exists and it's already current version")
+                return genomeDB_doc, taxonDB_doc
 
         
 

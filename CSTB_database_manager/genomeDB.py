@@ -4,6 +4,7 @@ from typing import TypedDict, Optional
 class GenomeDoc(TypedDict):
     #TO DO : add size, GCF, ASM
     _id: str #uuid
+    _rev: str
     taxon: str #uuid
     fasta_md5: str
 
@@ -25,7 +26,7 @@ class GenomeDB():
         doc = self.wrapper.couchPostDoc(self.db_name + "/_find", mango_query)
         if not doc['docs']:
             return None
-        return doc['docs']
+        return doc['docs'][0]
     
     def create_insert_doc(self, fasta_md5:str) -> {}:
         return {

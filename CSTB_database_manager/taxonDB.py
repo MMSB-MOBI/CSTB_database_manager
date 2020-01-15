@@ -4,6 +4,7 @@ from typing import TypedDict, Optional, List
 class TaxonDoc(TypedDict):
     # TO DO : add date
     _id: str #uuid
+    _rev: str
     genomeColl: List[str] #uuid list
     name: str
     taxid : Optional[int]
@@ -30,7 +31,7 @@ class TaxonDB():
         doc = self.wrapper.couchPostDoc(self.db_name + "/_find", mango_query)
         if not doc['docs']:
             return None
-        return doc['docs']
+        return doc['docs'][0]
     
     def create_insert_doc(self, name: str, taxid: int = None) -> {}:
         return {
