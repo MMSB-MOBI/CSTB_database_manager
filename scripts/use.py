@@ -10,7 +10,7 @@ Options:
 """
 
 import sys
-sys.path.append("/home/chilpert/Dev/CSTB_database_manager")
+sys.path.append("/home/chilpert/Dev/CSTB_database_manager/lib")
 import CSTB_database_manager.databaseManager as dbManager
 from docopt import docopt
 
@@ -64,7 +64,6 @@ if __name__ == "__main__":
     db.addGenome('../data_tests/ecoli_O157_1_10k.fna', "Vibrio cholerae O1 biovar El Tor str. N16961", 243277)
     print()
 
-    print("POUEEEET")
 
     #Insert plasmid with no taxid
     print("# INSERT PLASMID WITH NO TAXID")
