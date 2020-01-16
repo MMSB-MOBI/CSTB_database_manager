@@ -69,9 +69,3 @@ class GenomeEntity(CSTB_database_manager.virtual.Entity):
         if not other:
             return False
         return self._id == other._id and self._rev == other._rev and self.fasta_md5 == other.fasta_md5 and self.taxon == other.taxon
-
-    def store(self):
-        db_genome = self.container.getFromID(self._id)
-        if not self == db_genome:
-           print("Add document")
-           self.container.add(self.couchDoc)      
