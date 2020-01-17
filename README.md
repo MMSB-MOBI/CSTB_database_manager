@@ -73,6 +73,7 @@ Insertion will not be done and we ask for update when:
   * fasta exists in genome database but is linked with an other taxon -> you need to update taxon or delete genome to insert
   * fasta exists in genome database but is an old version for taxon -> you need to change taxon version  
   * taxid exists but associated with an other name -> you need to update taxon
+  * fasta exists but associated with other gcf/accession -> you need to update genome
   
 #### Update genome
  
