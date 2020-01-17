@@ -38,7 +38,7 @@ Taxon database is a collection of this type of documents :
   ]
 }
 ```
-`genomeColl` and `current` are references to Genome document.
+`genomeColl` and `current` are references to Genome document. `taxid` can be `null`
 
 #### Genome database
 Genome database is a collection of this type of documents : 
@@ -47,10 +47,12 @@ Genome database is a collection of this type of documents :
   "_id": "32cd400c3f5997cfdd3abd290e0bb43f",
   "_rev": "1-e6b9861dc339a082d9ca6a1a06fe6c8d",
   "fasta_md5": "6399150c8cbed82ed0f50b8d6b09f8bc",
-  "taxon": "32cd400c3f5997cfdd3abd290e0bbebc"
+  "taxon": "32cd400c3f5997cfdd3abd290e0bbebc",
+  "gcf_assembly": "my_gcf", 
+  "accession_number" : "my_acc"
 }
 ```
-`taxon` are reference to Taxon document. 
+`taxon` are reference to Taxon document. `gcf_assembly` and `accession_number` can be `null`
 
 ### Operations
 
