@@ -155,8 +155,8 @@ class DatabaseManager():
         
 
     def bind(self, genome, taxon):
-        if genome.alreadyExists():
-            if taxon.alreadyExists():
+        if genome.isInDB():
+            if taxon.isInDB():
                 if genome.taxon == taxon._id:
                     if taxon.current == genome._id:
                         print("Genome already exists as current version")

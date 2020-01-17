@@ -7,8 +7,8 @@ class Entity():
     def __str__(self):
         return str(self.__dict__)
 
-    def alreadyExists(self) -> bool:
-        if self.container.wrapper.couchGetDoc(self.container.db_name, self._id):
+    def isInDB(self) -> bool:
+        if self._rev:
             return True
         return False
 
