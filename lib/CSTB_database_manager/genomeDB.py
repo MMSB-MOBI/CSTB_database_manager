@@ -4,7 +4,7 @@ import CSTB_database_manager.virtual
 import CSTB_database_manager.error as error
 
 
-GenomeDoc = TypedDict("GenomeDoc", {"_id": str, "_rev": Optional[str], "taxon": str, "fasta_md5": str}, total=False)
+GenomeDoc = TypedDict("GenomeDoc", {"_id": str, "_rev": Optional[str], "taxon": str, "fasta_md5": str, "gcf_assembly": Optional[str], "accession_number": Optional[str]}, total=False)
 
 class PositivePutAnswer(TypedDict): #Probably not define this type here, it's in taxonDB too.
     ok : bool
@@ -19,7 +19,7 @@ class GenomeDB():
         self.wrapper = wrapper
         self.db_name = db_name
 
-    def get(self, fasta_md5: str) -> Optional['GenomeEntity']:
+    def get(self, fasta_md5: str, gcf: str = None, acc: str = None) -> Optional['GenomeEntity']:
 
         mango_query = {"selector":
                 {"fasta_md5": fasta_md5}
@@ -29,7 +29,23 @@ class GenomeDB():
         if not doc['docs']:
             return None
 
-        return GenomeEntity(self, doc['docs'][0])
+        if len(doc['docs']) > 1 : 
+            raise error.DuplicateError(f'Fasta exists {len(doc["docs"])} times in genome database')
+
+        doc = doc['docs'][0]
+
+        gcf_error = False
+        acc_error = False
+        if gcf and gcf != doc["gcf_assembly"]:
+            gcf_error = True
+
+        if acc and acc != doc["accession_number"]:
+            acc_error = True
+
+        if gcf_error or acc_error:
+            raise error.ConsistencyError(f'Fasta exists in genome database but with an other gcf_assembly and/or accession_number (gcf_assembly: {doc["gcf_assembly"]}, accession_number: {doc["accession_number"]})')
+
+        return GenomeEntity(self, doc)
     
     #def create_insert_doc(self, fasta_md5:str, gcf: str = None, acc: str = None) -> GenomeDoc:
     #    return {
@@ -39,10 +55,12 @@ class GenomeDB():
     #        "accession_number" : acc
     #    }
 
-    def createNewGenome(self, fasta_md5:str) -> 'GenomeEntity':
+    def createNewGenome(self, fasta_md5:str, gcf: str = None, acc: str = None) -> 'GenomeEntity':
         doc = {
             "_id": self.wrapper.couchGenerateUUID(),
-            "fasta_md5" : fasta_md5
+            "fasta_md5" : fasta_md5,
+            "gcf_assembly" : gcf, 
+            "accession_number": acc
         }
 
         return GenomeEntity(self, doc)
@@ -64,8 +82,8 @@ class GenomeEntity(CSTB_database_manager.virtual.Entity):
         super().__init__(container, couchDoc)
         self.fasta_md5 = couchDoc["fasta_md5"]
         self.taxon = couchDoc["taxon"] if couchDoc.get("taxon") else None
+        self.gcf_assembly = couchDoc["gcf_assembly"] if couchDoc.get("gcf_assembly") else None
+        self.accession_number = couchDoc["accession_number"] if couchDoc.get("accession_number") else None
 
-    def __eq__(self, other : Optional['GenomeEntity']):
-        if not other:
-            return False
-        return self._id == other._id and self._rev == other._rev and self.fasta_md5 == other.fasta_md5 and self.taxon == other.taxon
+    def __eq__(self, other :'GenomeEntity') -> bool:
+        return self.couchDoc == other.couchDoc

@@ -96,18 +96,7 @@ class DatabaseManager():
             print("Insert taxon")
             self.taxondb.add(final_taxonDB_doc)
 
-    def addGenome(self, fasta: str, name: str, taxid: int = None):
-        """
-        Function to call to add an entry to database. 
-
-        :param fasta: Path to fasta file
-        :type fasta: str
-        :param name: Taxon name
-        :type name: str
-        :param taxid: Taxon taxid (optional)
-        :type taxid: int|None
-
-        """
+    def addGenome(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
         print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}")
 
         hasher = hashlib.md5()
@@ -116,9 +105,17 @@ class DatabaseManager():
             hasher.update(buf)
         fasta_md5 = hasher.hexdigest()
 
-        genome_entity = self.genomedb.get(fasta_md5)
+        try:
+            genome_entity = self.genomedb.get(fasta_md5, gcf, acc)
+        except error.DuplicateError as e: 
+            print(f"Can't add your entry because DuplicateError in genome database \nReason : \n{e}")
+            return
+        except error.ConsistencyError as e: 
+            print(f"Can't add your entry because ConsistencyError in genome database \nReason : \n{e}")
+            return
+        
         if not genome_entity:
-            genome_entity = self.genomedb.createNewGenome(fasta_md5)
+            genome_entity = self.genomedb.createNewGenome(fasta_md5, gcf, acc)
 
         try:
             taxon_entity = self.taxondb.get(name, taxid)
@@ -146,14 +143,6 @@ class DatabaseManager():
         genome_entity.store()
         taxon_entity.store()
         
-        #genome_entity.bind(taxon_entity)
-        #genome_entity.store()
-        
-        #taxon_entity.bind(genome_entity)
-
-        #taxon_entity.store()
-        
-
     def bind(self, genome, taxon):
         if genome.isInDB():
             if taxon.isInDB():
@@ -173,7 +162,7 @@ class DatabaseManager():
                 current_taxon = self.taxondb.getFromID(genome.taxon)#Not really useful interrogation, just for print information
                 raise error.LinkError(f'Genome already exists but associated with an other Taxon (name : {current_taxon.name}, taxid : {current_taxon.taxid}). Update this taxon or delete genome if you really want to add it.')
         else:
-            if taxon.alreadyExists():
+            if taxon.isInDB():
                 print(f'New genome version for Taxon (name: {taxon.name}, taxid {taxon.taxid}')
                 genome.taxon = taxon._id
                 taxon.current = genome._id

@@ -17,17 +17,21 @@ from docopt import docopt
 if __name__ == "__main__":
     ARGS = docopt(__doc__, version="Use cases")
 
-    db = dbManager.databaseManager(ARGS["--config"])
+    db = dbManager.DatabaseManager(ARGS["--config"])
 
     # Add completely new genome with taxid
     print("# ADD NEW V.CHOLERAE")
-    db.addGenome('../data_tests/vibrio_cholerae_10k.fna', "Vibrio cholerae O1 biovar El Tor str. N16961", 243277)
+    db.addGenome('../data_tests/vibrio_cholerae_10k.fna', "Vibrio cholerae O1 biovar El Tor str. N16961", 243277, gcf = "my_gcf", acc = "my_acc")
     print()
 
     #Add same genome
     print("# ADD SAME V.CHOLERAE")
-    db.addGenome('../data_tests/vibrio_cholerae_10k.fna', "Vibrio cholerae O1 biovar El Tor str. N16961", 243277)
+    db.addGenome('../data_tests/vibrio_cholerae_10k.fna', "Vibrio cholerae O1 biovar El Tor str. N16961", 243277, gcf = "my_gcf", acc = "my_acc")
     print()
+
+    print("# ADD WITH OTHER GCF AND ACC")
+    db.addGenome('../data_tests/vibrio_cholerae_10k.fna', "Vibrio cholerae O1 biovar El Tor str. N16961", 243277, gcf = "abc", acc = "def")
+    print() 
 
     #Add an other
     print("# ADD E.COLI")
@@ -84,3 +88,7 @@ if __name__ == "__main__":
     print("# INSERT PLASMID SUDDENLY WITH TAXID")
     db.addGenome("../data_tests/pOXA-48.fna", "pOXA-48", 12)
     print()
+
+    #Insert new genome with bad taxon
+    print("# INSERT GENOME WITH BAD TAXON")
+    db.addGenome("../data_tests/pseudo_syringae_10k.fna", "pouet", 243277, acc = "NC_004578.1")

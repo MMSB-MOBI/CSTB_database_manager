@@ -35,7 +35,7 @@ class TaxonDB():
             
             # Check if name corresponds
             doc = doc['docs'][0]
-            if doc["name"] != "name":
+            if doc["name"] != name:
                 raise error.ConsistencyError(f'{taxid} exists in taxon database but associated with an other name (name : {doc["name"]}). Update taxon if you want to insert.')
             return TaxonEntity(self, doc)
 
@@ -79,8 +79,6 @@ class TaxonDB():
             return TaxonEntity(self, doc)
         return None
 
-    
-
 
 @typechecked
 class TaxonEntity(CSTB_database_manager.virtual.Entity):
@@ -91,10 +89,10 @@ class TaxonEntity(CSTB_database_manager.virtual.Entity):
         self.current = couchDoc["current"] if couchDoc.get("current") else None
         self.genomeColl = couchDoc["genomeColl"] if couchDoc.get("genomeColl") else []
     
-    def __eq__(self, other : Optional['TaxonEntity']):
-        if not other:
-            return False
-        return self._id == other._id and self._rev == other._rev and self.taxid == other.taxid and self.current == other.current and self.genomeColl == other.genomeColl
+    def __eq__(self, other : 'TaxonEntity') -> bool:
+        return self.couchDoc == other.couchDoc
+
+    
 
 
         

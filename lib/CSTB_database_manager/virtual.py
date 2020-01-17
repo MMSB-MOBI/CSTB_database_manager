@@ -1,3 +1,5 @@
+import copy
+
 class Entity():
     def __init__(self, container, couchDoc):
         self.container = container
@@ -15,7 +17,7 @@ class Entity():
 
     @property
     def couchDoc(self):
-        doc = self.__dict__
+        doc = copy.deepcopy(self.__dict__)
         del doc["container"]
         if not self._rev:
             del doc["_rev"]
@@ -23,7 +25,7 @@ class Entity():
 
     def store(self):
         db_entry = self.container.getFromID(self._id)
-        if not self == db_entry:
+        if not db_entry or self != db_entry:
            print("Add document")
            self.container.add(self.couchDoc)
 
