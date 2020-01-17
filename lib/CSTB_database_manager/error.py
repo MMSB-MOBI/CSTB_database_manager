@@ -3,3 +3,9 @@ class LinkError(Exception):
 
 class VersionError(Exception):
     pass
+
+class DuplicateError(Exception):
+    pass
+
+class ConsistencyError(Exception):
+    pass

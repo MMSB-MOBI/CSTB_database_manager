@@ -16,7 +16,13 @@ class ConfigType(TypedDict):
     genomedb_name: str
 
 @typechecked
-class databaseManager():
+class DatabaseManager():
+    """
+    Database manager object
+
+    :param wrapper: pouet
+    :type wrapper: pyCouch wrapper
+    """
     def __init__(self, config_file:str) -> None:
         if not isinstance(config_file, str):
             raise TypeError(f"config_file must be str not {type(config_file)}")
@@ -91,6 +97,17 @@ class databaseManager():
             self.taxondb.add(final_taxonDB_doc)
 
     def addGenome(self, fasta: str, name: str, taxid: int = None):
+        """
+        Function to call to add an entry to database. 
+
+        :param fasta: Path to fasta file
+        :type fasta: str
+        :param name: Taxon name
+        :type name: str
+        :param taxid: Taxon taxid (optional)
+        :type taxid: int|None
+
+        """
         print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}")
 
         hasher = hashlib.md5()
@@ -103,7 +120,15 @@ class databaseManager():
         if not genome_entity:
             genome_entity = self.genomedb.createNewGenome(fasta_md5)
 
-        taxon_entity = self.taxondb.get(name, taxid)
+        try:
+            taxon_entity = self.taxondb.get(name, taxid)
+        except error.DuplicateError as e:
+            print(f"Can't add your entry because DuplicateError in taxon database \nReason : \n{e}")
+            return
+        except error.ConsistencyError as e:
+            print(f"Can't add your entry because ConsistencyError in taxon database \nReason : \n{e}")
+            return
+        
         if not taxon_entity:
             taxon_entity = self.taxondb.createNewTaxon(name, taxid)
         

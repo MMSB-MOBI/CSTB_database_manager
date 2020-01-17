@@ -2,6 +2,7 @@ from typeguard import typechecked
 from typing import TypedDict, Optional, List
 import CSTB_database_manager.virtual
 import CSTB_database_manager.genomeDB as genomeDB
+import CSTB_database_manager.error as error
 
 TaxonDoc = TypedDict("TaxonDoc", 
 {"_id": str, "_rev": str, "genomeColl": List[str], "name": str, "taxid": Optional[int], "current": str}, 
@@ -19,15 +20,39 @@ class TaxonDB():
         self.db_name = db_name
 
     def get(self, name: str, taxid: int = None) -> Optional['TaxonEntity']:
-        mango_query = {
+        if taxid: 
+            taxid_mango_query = {
+                 "selector": {
+                     "taxid" : taxid
+                 }
+            }
+            doc = self.wrapper.couchPostDoc(self.db_name + "/_find", taxid_mango_query)
+            if not doc['docs']:
+                return None
+            
+            if len(doc['docs']) > 1:
+                raise error.DuplicateError(f'{taxid} exists {len(doc["docs"])} times in taxon database')
+            
+            # Check if name corresponds
+            doc = doc['docs'][0]
+            if doc["name"] != "name":
+                raise error.ConsistencyError(f'{taxid} exists in taxon database but associated with an other name (name : {doc["name"]}). Update taxon if you want to insert.')
+            return TaxonEntity(self, doc)
+
+        name_mango_query = {
             "selector": {
-                "name": name, "taxid": taxid
+                "name": name
             }
         }
 
-        doc = self.wrapper.couchPostDoc(self.db_name + "/_find", mango_query)
+        doc = self.wrapper.couchPostDoc(self.db_name + "/_find", name_mango_query)
+        
         if not doc['docs']:
             return None
+
+        if len(doc['docs']) > 1:
+            raise error.DuplicateError(f'{name} exists {len(doc["docs"])} times in taxon database associated with no taxid')
+        
         return TaxonEntity(self,doc['docs'][0])
     
     #def create_insert_doc(self, name: str, taxid: int = None) -> TaxonDoc:
