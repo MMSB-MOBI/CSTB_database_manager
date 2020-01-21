@@ -44,6 +44,4 @@ if __name__ == "__main__":
                 acc = None
             
             db.addGenome(fasta, name, taxid, gcf, acc)
-            if i == 100:
-                break
             print()
