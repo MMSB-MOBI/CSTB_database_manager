@@ -100,10 +100,14 @@ class DatabaseManager():
         print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf: {gcf}\nacc: {acc}")
 
         hasher = hashlib.md5()
-        with open(fasta, "rb") as f:
-            buf = f.read()
-            hasher.update(buf)
-        fasta_md5 = hasher.hexdigest()
+        try:
+            with open(fasta, "rb") as f:
+                buf = f.read()
+                hasher.update(buf)
+            fasta_md5 = hasher.hexdigest()
+        except FileNotFoundError:
+            print(f"Can't add your entry because fasta file is not found.")
+            return
 
         try:
             genome_entity = self.genomedb.get(fasta_md5, gcf, acc)
