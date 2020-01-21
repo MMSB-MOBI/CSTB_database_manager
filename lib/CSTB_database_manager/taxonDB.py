@@ -5,7 +5,7 @@ import CSTB_database_manager.genomeDB as genomeDB
 import CSTB_database_manager.error as error
 
 TaxonDoc = TypedDict("TaxonDoc", 
-{"_id": str, "_rev": str, "genomeColl": List[str], "name": str, "taxid": Optional[int], "current": str}, 
+{"_id": str, "_rev": str, "genomeColl": List[str], "name": str, "taxid": Optional[int], "current": str, "date": str}, 
 total=False)
 
 class PositivePutAnswer(TypedDict):

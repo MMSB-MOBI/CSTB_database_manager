@@ -1,17 +1,15 @@
 from typeguard import typechecked
-from typing import TypedDict, Optional
+from typing import TypedDict, Optional, Dict
 import CSTB_database_manager.virtual
 import CSTB_database_manager.error as error
 
 
-GenomeDoc = TypedDict("GenomeDoc", {"_id": str, "_rev": Optional[str], "taxon": str, "fasta_md5": str, "gcf_assembly": Optional[str], "accession_number": Optional[str]}, total=False)
+GenomeDoc = TypedDict("GenomeDoc", {"_id": str, "_rev": Optional[str], "taxon": str, "fasta_md5": str, "gcf_assembly": Optional[str], "accession_number": Optional[str], "size": Dict, "date": str}, total=False)
 
 class PositivePutAnswer(TypedDict): #Probably not define this type here, it's in taxonDB too.
     ok : bool
     id: str
     rev: str
-
-
 
 @typechecked
 class GenomeDB():
@@ -55,14 +53,14 @@ class GenomeDB():
     #        "accession_number" : acc
     #    }
 
-    def createNewGenome(self, fasta_md5:str, gcf: str = None, acc: str = None) -> 'GenomeEntity':
+    def createNewGenome(self, fasta_md5:str, size: Dict, gcf: str = None, acc: str = None) -> 'GenomeEntity':
         doc = {
             "_id": self.wrapper.couchGenerateUUID(),
             "fasta_md5" : fasta_md5,
             "gcf_assembly" : gcf, 
-            "accession_number": acc
+            "accession_number": acc,
+            "size": size
         }
-
         return GenomeEntity(self, doc)
 
     def add(self, doc: GenomeDoc) -> PositivePutAnswer:
@@ -74,8 +72,6 @@ class GenomeDB():
             return GenomeEntity(self, doc)
         return None
 
-
-
 @typechecked
 class GenomeEntity(CSTB_database_manager.virtual.Entity):
     def __init__(self, container: 'GenomeDB', couchDoc: GenomeDoc):
@@ -84,6 +80,7 @@ class GenomeEntity(CSTB_database_manager.virtual.Entity):
         self.taxon = couchDoc["taxon"] if couchDoc.get("taxon") else None
         self.gcf_assembly = couchDoc["gcf_assembly"] if couchDoc.get("gcf_assembly") else None
         self.accession_number = couchDoc["accession_number"] if couchDoc.get("accession_number") else None
+        self.size = couchDoc["size"]
 
     def __eq__(self, other :'GenomeEntity') -> bool:
         return self.couchDoc == other.couchDoc

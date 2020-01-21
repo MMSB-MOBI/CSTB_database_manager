@@ -1,10 +1,12 @@
 import copy
+from datetime import datetime
 
 class Entity():
     def __init__(self, container, couchDoc):
         self.container = container
         self._id = couchDoc["_id"]
         self._rev = couchDoc["_rev"] if couchDoc.get("_rev") else None
+        self.date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
     def __str__(self):
         return str(self.__dict__)
@@ -26,7 +28,7 @@ class Entity():
     def store(self):
         db_entry = self.container.getFromID(self._id)
         if not db_entry or self != db_entry:
-           print("Add document")
+           print(f"Add document {self._id} in {self.container.db_name}")
            self.container.add(self.couchDoc)
 
 

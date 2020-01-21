@@ -97,7 +97,7 @@ class DatabaseManager():
             self.taxondb.add(final_taxonDB_doc)
 
     def addGenome(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
-        print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}")
+        print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf: {gcf}\nacc: {acc}")
 
         hasher = hashlib.md5()
         with open(fasta, "rb") as f:
@@ -115,7 +115,8 @@ class DatabaseManager():
             return
         
         if not genome_entity:
-            genome_entity = self.genomedb.createNewGenome(fasta_md5, gcf, acc)
+            size = self._get_fasta_size(fasta)
+            genome_entity = self.genomedb.createNewGenome(fasta_md5, size, gcf, acc)
 
         try:
             taxon_entity = self.taxondb.get(name, taxid)
@@ -139,7 +140,7 @@ class DatabaseManager():
         except error.VersionError as e:
             print(f"Can't add your entry because VersionError\nReason : \n{e}")
             return
-        
+
         genome_entity.store()
         taxon_entity.store()
         
@@ -173,49 +174,17 @@ class DatabaseManager():
                 genome.taxon = taxon._id
                 taxon.current = genome._id
                 taxon.genomeColl = [genome._id]
-
-
-
-    def bindOld(self, genomeDB_doc: genomeDBHandler.GenomeDoc, taxonDB_doc:taxonDBHandler.TaxonDoc) -> Tuple[genomeDBHandler.GenomeDoc, taxonDBHandler.TaxonDoc]:
-        new_genome_doc = copy.deepcopy(genomeDB_doc)
-        new_taxon_doc = copy.deepcopy(taxonDB_doc)
-
-        if not genomeDB_doc.get("taxon") and not taxonDB_doc.get("current"): #All is new. Make correspondance between the 2.
-            new_genome_doc["taxon"] = taxonDB_doc["_id"]
-            new_taxon_doc["current"] = genomeDB_doc["_id"]
-            new_taxon_doc["genomeColl"] = [genomeDB_doc["_id"]]
     
-        elif genomeDB_doc.get("taxon") and taxonDB_doc.get("current"):
-            if genomeDB_doc["taxon"] == taxonDB_doc["_id"]:
-                if taxonDB_doc["current"] == genomeDB_doc["_id"]:
-                    print("Genome already exists as current version")
-                elif genomeDB_doc["_id"] in taxonDB_doc["genomeColl"]:
-                    
-                    print(f'This genome exists as an older version of Taxon (name : {taxonDB_doc["name"]}, taxid : {taxonDB_doc["taxid"]})')
-                    # Do we really want to replace current version by old ? Maybe better to create function dedicated to this in taxonDB ? 
+    def _get_fasta_size(self, fasta: str) -> Dict:
+        dic_size = {}
+        with open(fasta) as f: 
+            for l in f: 
+                if l.startswith('>'):
+                    ref = l.split(" ")[0].lstrip(">")
+                    dic_size[ref] = 0
                 else:
-                    raise Exception("Taxon link in Genome but no Genome link in Taxon.")
-            else:
-                current_taxon = self.wrapper.couchGetDoc(self.taxondb.db_name, genomeDB_doc["taxon"])#Not really useful interrogation, just for print information
-                print(f'Genome already exists but associated with an other Taxon (name : {current_taxon["name"]}, taxid : {current_taxon["taxid"]}). Update this taxon or delete genome if you really want to add it.')
-        
-        elif not genomeDB_doc.get("taxon") and taxonDB_doc.get("current"):
-            print(f'New genome version for taxon {taxonDB_doc["name"]}')
-            new_genome_doc["taxon"] = taxonDB_doc["_id"]
-            new_taxon_doc["current"] = genomeDB_doc["_id"]
-            new_taxon_doc["genomeColl"].append(genomeDB_doc["_id"])
-        
-        elif genomeDB_doc.get("taxon") and not taxonDB_doc.get("current"):
-            #Genome exists with another taxon
-            current_taxon = self.wrapper.couchGetDoc(self.taxondb.db_name, genomeDB_doc["taxon"])
-            print(f'Genome already exists but associated with an other Taxon (name : {current_taxon["name"]}, taxid : {current_taxon["taxid"]}). Update this taxon or delete genome if you really want to add it.')
-            
-        else:
-            #Really weird if it goes here
-            print("WARN: CASE NOT HANDLED")
-            exit()
-
-        return new_genome_doc, new_taxon_doc
+                    dic_size[ref] += len(l.rstrip())           
+        return dic_size
 
         
 
