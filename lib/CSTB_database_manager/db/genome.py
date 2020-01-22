@@ -1,7 +1,7 @@
 from typeguard import typechecked
 from typing import TypedDict, Optional, Dict
-import CSTB_database_manager.virtual
-import CSTB_database_manager.error as error
+import CSTB_database_manager.db.virtual
+import CSTB_database_manager.utils.error as error
 
 
 GenomeDoc = TypedDict("GenomeDoc", {"_id": str, "_rev": Optional[str], "taxon": str, "fasta_md5": str, "gcf_assembly": Optional[str], "accession_number": Optional[str], "size": Dict, "date": str}, total=False)
@@ -73,7 +73,7 @@ class GenomeDB():
         return None
 
 @typechecked
-class GenomeEntity(CSTB_database_manager.virtual.Entity):
+class GenomeEntity(CSTB_database_manager.db.virtual.Entity):
     def __init__(self, container: 'GenomeDB', couchDoc: GenomeDoc):
         super().__init__(container, couchDoc)
         self.fasta_md5 = couchDoc["fasta_md5"]
@@ -84,3 +84,6 @@ class GenomeEntity(CSTB_database_manager.virtual.Entity):
 
     def __eq__(self, other :'GenomeEntity') -> bool:
         return self.couchDoc == other.couchDoc
+    
+    def __str__(self) -> str :
+        return str(self.__dict__)
