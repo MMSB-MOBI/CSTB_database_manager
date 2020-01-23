@@ -1,6 +1,18 @@
 import copy
 from datetime import datetime
 
+class Database():
+    def __init__(self, wrapper, db_name):
+        self.wrapper = wrapper
+        self.db_name = db_name
+    
+    def remove(self, id):
+        print(f"Remove {id} from {self.db_name}")
+        try:
+            self.wrapper.couchDeleteDoc(self.db_name, id)
+        except wrapper.CouchWrapperError as e :
+            print(f"Can't remove {id} from {self.db_name} database because of CouchWrapperErro\n{e}")
+
 class Entity():
     def __init__(self, container, couchDoc):
         self.container = container
@@ -31,6 +43,8 @@ class Entity():
            print(f"Add document {self._id} in {self.container.db_name}")
            self.container.add(self.couchDoc)
 
+    def remove(self):
+        self.container.remove(self._id)
 
 
         

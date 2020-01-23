@@ -14,10 +14,9 @@ class PositivePutAnswer(TypedDict):
     rev: str
 
 @typechecked
-class TaxonDB():
+class TaxonDB(CSTB_database_manager.virtual.Database):
     def __init__(self, wrapper, db_name):
-        self.wrapper = wrapper
-        self.db_name = db_name
+        super().__init__(wrapper, db_name)
 
     def get(self, name: str, taxid: int = None) -> Optional['TaxonEntity']:
         if taxid: 

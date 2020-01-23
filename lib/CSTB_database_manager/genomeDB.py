@@ -12,10 +12,9 @@ class PositivePutAnswer(TypedDict): #Probably not define this type here, it's in
     rev: str
 
 @typechecked
-class GenomeDB():
+class GenomeDB(CSTB_database_manager.virtual.Database):
     def __init__(self, wrapper, db_name):
-        self.wrapper = wrapper
-        self.db_name = db_name
+        super().__init__(wrapper, db_name)
 
     def get(self, fasta_md5: str, gcf: str = None, acc: str = None) -> Optional['GenomeEntity']:
 

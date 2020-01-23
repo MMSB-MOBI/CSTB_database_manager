@@ -190,9 +190,66 @@ class DatabaseManager():
                     dic_size[ref] += len(l.rstrip())           
         return dic_size
 
-        
+    def _get_md5(self, fasta:str) -> str:
+        hasher = hashlib.md5()
+        with open(fasta, "rb") as f:
+            buf = f.read()
+            hasher.update(buf)
+        fasta_md5 = hasher.hexdigest()
+        return fasta_md5
 
-    def updateGenome(self):
-        print("UPDATE")
+    def removeGenome(self, fasta: str, gcf: str = None, acc:str = None): 
+        print("INFO : Remove genome")
+        try:
+            md5 = self._get_md5(fasta)
+        except FileNotFoundError:
+            print("Can't remove your entry because fasta file is not found")
+            return
+        try: 
+            genome = self.genomedb.get(md5)
+        except error.DuplicateError as e:
+            print(f"Can't remove your entry because of DuplicateError\nreason: {e}")
+            return
+        except error.ConsistencyError as e :
+            print(f"Can't remove your entry because of ConsistencyError\nreason: {e}")
+            return
+        except wrapper.CouchWrapperError as e:
+            print(f"Can't remove your entry because of CouchWrapperError\nreason: {e}")
+            return
+        if not genome:
+            print(f"Genome doesn't exist in genome database")
+            return
+
+        print(f"Genome : {genome._id}")
+        print(f"Corresponding taxon is {genome.taxon}")
+
+        try: 
+            taxon = self.taxondb.getFromID(genome.taxon)
+        except wrapper.CouchWrapperError as e : 
+            print(f"Can't remove your entry because of CouchWrapperError\nreason: {e}")
+            return
+
+        if not taxon: 
+            raise error.ConsistencyError(f"Associated taxon {genome.taxon} doesn't exist in taxon database")
+        
+        if not genome._id in taxon.genomeColl: 
+            raise error.ConsistencyError(f"Genome {genome._id} is not linked with its taxon {taxon._id}")
+
+        taxon.genomeColl.remove(genome._id)
+
+        if not taxon.genomeColl:
+            print(f"Your genome was the only version of the taxon (name : {taxon.name}, taxid : {taxon.taxid}). Taxon will be deleted.")
+            genome.remove()
+            taxon.remove()
+
+        else: 
+            print(f"Delete this version of Taxon (name : {taxon.name}, taxid : {taxon.taxid}). Current version become the previous one.")
+            taxon.current = taxon.genomeColl[-1]
+            genome.remove()
+            taxon.store()
+
+
+        
+        
 
 
