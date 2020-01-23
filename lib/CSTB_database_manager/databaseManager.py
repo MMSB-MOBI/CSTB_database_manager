@@ -1,12 +1,17 @@
-import CSTB_database_manager.taxonDB as taxonDBHandler
-import CSTB_database_manager.genomeDB as genomeDBHandler
-import pycouch.wrapper_class as wrapper
-import json
+import json, copy, pickle
+
 from typing import TypedDict, Tuple, Dict
 from typeguard import typechecked
-import hashlib
-import copy
-import CSTB_database_manager.error as error
+
+import pycouch.wrapper_class as wrapper
+
+from CSTB_database_manager.engine.word_detect import sgRNAfastaSearch
+import CSTB_database_manager.db.taxon as taxonDBHandler
+import CSTB_database_manager.db.genome as genomeDBHandler
+import CSTB_database_manager.utils.error as error
+from CSTB_database_manager.utils.io import fileHash as fastaHash
+
+from  CSTB_database_manager.db.genome import GenomeEntity as tGenomeEntity
 
 class ConfigType(TypedDict):
     url: str
@@ -57,15 +62,21 @@ class DatabaseManager():
             self.wrapper.couchCreateDB(genomedb_name)
         return genomeDBHandler.GenomeDB(self.wrapper, genomedb_name)
     
+    def setDebugMode(self, value=True):
+        wrapper.DEBUG_MODE = value
+
+    def setMotifAgent(self, mappingRuleFile):
+        with open(mappingRuleFile, 'rb') as fp:
+            self.wrapper.setKeyMappingRules(json.load(fp))
+        print(f"Loaded {len(self.wrapper.queue_mapper)} volumes mapping rules" )
+    
+    def getGenomeEntity(self, fastaMd5:str):
+        return self.genomedb.get(fastaMd5)
+
     def addGenomeOld(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
         print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf assembly : {gcf}\naccession number : {acc}")
         # Check if fasta already exists in genomeDB
-        hasher = hashlib.md5()
-        with open(fasta, "rb") as f:
-            buf = f.read()
-            hasher.update(buf)
-        fasta_md5 = hasher.hexdigest()
-
+        fasta_md5 = fastaHash(fasta)
         genomeDB_doc = self.genomedb.get(fasta_md5)
 
         if not genomeDB_doc : #create doc, not complete now because we don't have the taxon uuid
@@ -99,12 +110,8 @@ class DatabaseManager():
     def addGenome(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
         print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf: {gcf}\nacc: {acc}")
 
-        hasher = hashlib.md5()
-        try:
-            with open(fasta, "rb") as f:
-                buf = f.read()
-                hasher.update(buf)
-            fasta_md5 = hasher.hexdigest()
+        try :
+            fasta_md5 = fastaHash(fasta)
         except FileNotFoundError:
             print(f"Can't add your entry because fasta file is not found.")
             return
@@ -253,3 +260,27 @@ class DatabaseManager():
         
 
 
+    def addFastaMotifs(self, fastaFileList, batchSize=10000, cacheLocation=None):
+        for fastaFile in fastaFileList:
+            sgRNA_data, uuid, ans = self.addFastaMotif(fastaFile, batchSize)
+            if cacheLocation:
+                pickle.dump(sgRNA_data, open(cacheLocation + "/" + uuid + ".p", "wb"), protocol=3)
+       
+    def addFastaMotif(self, fastaFile, batchSize):   
+        uuid = fastaHash(fastaFile)
+        genomeEntity = self.getGenomeEntity(uuid)
+        if not genomeEntity:
+            raise error.NoGenomeEntity(fastaFile)
+        sgRNA_data = sgRNAfastaSearch(fastaFile, uuid)
+        allKeys = list(sgRNA_data.keys())
+        print(f"databaseManager::addFastaMotif:Slicing \"{uuid}\" to volDocAdd its {len(allKeys)} genomic sgRNA motif")
+       
+        for i in range(0,len(allKeys), batchSize):
+          
+            j = i + batchSize if i + batchSize < len(allKeys) else len(allKeys)
+            legit_keys = allKeys[i:j]
+            d = { k : sgRNA_data[k] for k in legit_keys }
+            print(f"databaseManager::addFastaMotif:Attempting to volDocAdd {len(d.keys())} sets sgRNA keys")
+       
+            r = self.wrapper.volDocAdd(d)
+        return (sgRNA_data, uuid, r)

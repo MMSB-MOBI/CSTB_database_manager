@@ -1,8 +1,8 @@
 from typeguard import typechecked
 from typing import TypedDict, Optional, List
-import CSTB_database_manager.virtual
-import CSTB_database_manager.genomeDB as genomeDB
-import CSTB_database_manager.error as error
+import CSTB_database_manager.db.virtual
+import CSTB_database_manager.db.genome as genomeDB
+import CSTB_database_manager.utils.error as error
 
 TaxonDoc = TypedDict("TaxonDoc", 
 {"_id": str, "_rev": str, "genomeColl": List[str], "name": str, "taxid": Optional[int], "current": str, "date": str}, 
@@ -80,7 +80,7 @@ class TaxonDB(CSTB_database_manager.virtual.Database):
 
 
 @typechecked
-class TaxonEntity(CSTB_database_manager.virtual.Entity):
+class TaxonEntity(CSTB_database_manager.db.virtual.Entity):
     def __init__(self, container : 'TaxonDB', couchDoc: TaxonDoc):
         super().__init__(container, couchDoc)
         self.name = couchDoc["name"]
