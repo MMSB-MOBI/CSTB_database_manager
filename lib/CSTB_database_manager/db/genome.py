@@ -12,7 +12,7 @@ class PositivePutAnswer(TypedDict): #Probably not define this type here, it's in
     rev: str
 
 @typechecked
-class GenomeDB(CSTB_database_manager.virtual.Database):
+class GenomeDB(CSTB_database_manager.db.virtual.Database):
     def __init__(self, wrapper, db_name):
         super().__init__(wrapper, db_name)
 

@@ -14,7 +14,7 @@ class PositivePutAnswer(TypedDict):
     rev: str
 
 @typechecked
-class TaxonDB(CSTB_database_manager.virtual.Database):
+class TaxonDB(CSTB_database_manager.db.virtual.Database):
     def __init__(self, wrapper, db_name):
         super().__init__(wrapper, db_name)
 
