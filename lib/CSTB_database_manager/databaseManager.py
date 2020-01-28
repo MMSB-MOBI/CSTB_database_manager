@@ -8,10 +8,15 @@ import pycouch.wrapper_class as wrapper
 from CSTB_database_manager.engine.word_detect import sgRNAfastaSearch
 import CSTB_database_manager.db.taxon as taxonDBHandler
 import CSTB_database_manager.db.genome as genomeDBHandler
+import CSTB_database_manager.db.tree as treeDBHandler
 import CSTB_database_manager.utils.error as error
 from CSTB_database_manager.utils.io import fileHash as fastaHash
 
 from  CSTB_database_manager.db.genome import GenomeEntity as tGenomeEntity
+import CSTB_database_manager.engine.taxonomic_tree as tTree
+
+import logging
+logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(message)s')
 
 class ConfigType(TypedDict):
     url: str
@@ -19,6 +24,7 @@ class ConfigType(TypedDict):
     password: str
     taxondb_name: str
     genomedb_name: str
+    treedb_name: str
 
 @typechecked
 class DatabaseManager():
@@ -36,6 +42,7 @@ class DatabaseManager():
         self.wrapper: wrapper.Wrapper = self._init_wrapper(config["url"], (config["user"], config["password"]))
         self.taxondb: taxonDBHandler.TaxonDB = self._init_taxondb(config["taxondb_name"])
         self.genomedb : genomeDBHandler.GenomeDB = self._init_genomedb(config["genomedb_name"])
+        self.treedb = self._init(config["treedb_name"], treeDBHandler.TreeDB)
 
     def _load_config(self, config_file:str)-> ConfigType:
         with open(config_file) as f:
@@ -49,6 +56,13 @@ class DatabaseManager():
         
         return wrapperObj
 
+    def _init(self, database_name, database_obj):
+        if not self.wrapper.couchTargetExist(database_name):
+            print(f"INFO: Create {database_name}")
+            self.wrapper.couchCreateDB(database_name)
+        return database_obj(self.wrapper, database_name)
+        
+
     def _init_taxondb(self, taxondb_name: str) -> taxonDBHandler.TaxonDB:
         # Check taxondb existence, if not create it
         if not self.wrapper.couchTargetExist(taxondb_name): # Maybe do this in TaxonDB class?
@@ -61,7 +75,8 @@ class DatabaseManager():
             print(f"INFO: Create {genomedb_name}")
             self.wrapper.couchCreateDB(genomedb_name)
         return genomeDBHandler.GenomeDB(self.wrapper, genomedb_name)
-    
+
+
     def setDebugMode(self, value=True):
         wrapper.DEBUG_MODE = value
 
@@ -256,10 +271,59 @@ class DatabaseManager():
             taxon.store()
 
 
+    
+    def createTree(self):
+        # Find all taxids
+        try:
+            total_taxons = self.taxondb.number_of_entries()
+        except wrapper.CouchWrapperError as e:
+            logging.error(f"CouchWrapperError when try to get number of entries\n{e}")
+            return
+
+        mango_query = {
+            "selector": {
+                "taxid" : {"$ne": None}
+            },
+            "limit":total_taxons
+        }
+        try:
+            docs = self.taxondb.execute_mango_query(mango_query)
+        except error.MangoQueryError as e:
+            logging.error(f"MangoQueryError\n{e}")
+            return
+
+        logging.info(f"{len(docs)} taxids found")
+        dic_taxid = {d["taxid"]:d["name"] for d in docs}
+
+        mango_query = {
+            "selector": {
+                "taxid" : {"$eq": None}
+            },
+            "limit": total_taxons
+        }
+        try:
+            docs = self.taxondb.execute_mango_query(mango_query)
+        except error.MangoQueryError as e:
+            logging.error(f"MangoQueryError\n{e}")
+            return
+
+        logging.info(f"{len(docs)} other taxon found")
+        other_taxons = [ d["name"] for d in docs ]
+
+        if not dic_taxid and not other_taxons:
+            print(f"No taxid found in {self.taxondb.db_name}")
+            return
+
+        # Create tree
+
+        tree = tTree.create_tree(dic_taxid, other_taxons)
+        tree_json = tree.get_json()
+        
+        tree_entity = self.treedb.createNewTree(tree_json)
+        tree_entity.store()
         
         
-
-
+        
     def addFastaMotifs(self, fastaFileList, batchSize=10000, cacheLocation=None):
         for fastaFile in fastaFileList:
             sgRNA_data, uuid, ans = self.addFastaMotif(fastaFile, batchSize)
