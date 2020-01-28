@@ -222,9 +222,6 @@ class DatabaseManager():
             genome.remove()
             taxon.store()
 
-
-<<<<<<< HEAD
-    
     def createTree(self):
         """
         Create taxonomic tree from taxon database. Will automatically search taxon, create tree and store tree into database.
