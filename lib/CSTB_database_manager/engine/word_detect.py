@@ -8,6 +8,7 @@ import re
 import argparse
 import pickle
 from Bio import SeqIO
+from CSTB_database_manager.utils.io import Zfile as zFile
 
 
 def args_gestion():
@@ -99,29 +100,31 @@ def sgRNAfastaSearch(fasta_file, organism, pam="NGG", non_pam_motif_length=20):
     sgrna = "N" * non_pam_motif_length + pam
     seq_dict = {}
 
-    for genome_seqrecord in SeqIO.parse(fasta_file, "fasta"):
-        genome_seq = genome_seqrecord.seq
-        ref = genome_seqrecord.id
-        seq_list_forward = find_indices_sgrna(str(genome_seq),
-                                              complement_seq(sgrna))
-        seq_list_reverse = find_indices_sgrna(str(genome_seq), sgrna)
+    #for genome_seqrecord in SeqIO.parse(fasta_file, "fasta"):
+    with zFile(fasta_file) as handle:
+        for genome_seqrecord in SeqIO.parse(handle, "fasta"):
+            genome_seq = genome_seqrecord.seq
+            ref = genome_seqrecord.id
+            seq_list_forward = find_indices_sgrna(str(genome_seq),
+                                                complement_seq(sgrna))
+            seq_list_reverse = find_indices_sgrna(str(genome_seq), sgrna)
 
-        seq_dict = find_sgrna_seq(seq_list_forward, 
-                                  len(pam) + non_pam_motif_length,
-                                  False, 
-                                  "+(", 
-                                  seq_dict, 
-                                  genome_seq, 
-                                  organism, 
-                                  ref)
-        seq_dict = find_sgrna_seq(seq_list_reverse,
-                                  len(pam) + non_pam_motif_length,
-                                  True, 
-                                  "-(", 
-                                  seq_dict, 
-                                  genome_seq, 
-                                  organism,
-                                  ref)
+            seq_dict = find_sgrna_seq(seq_list_forward, 
+                                    len(pam) + non_pam_motif_length,
+                                    False, 
+                                    "+(", 
+                                    seq_dict, 
+                                    genome_seq, 
+                                    organism, 
+                                    ref)
+            seq_dict = find_sgrna_seq(seq_list_reverse,
+                                    len(pam) + non_pam_motif_length,
+                                    True, 
+                                    "-(", 
+                                    seq_dict, 
+                                    genome_seq, 
+                                    organism,
+                                    ref)
     return seq_dict
 
 def construct_in(fasta_file, pickle_file, organism, pam="NGG", non_pam_motif_length=20):
