@@ -12,6 +12,8 @@ class Database():
             self.wrapper.couchDeleteDoc(self.db_name, id)
         except wrapper.CouchWrapperError as e :
             print(f"Can't remove {id} from {self.db_name} database because of CouchWrapperErro\n{e}")
+    def replicate(self, new_name):
+        self.wrapper.couchReplicate(self.db_name, new_name)
 
 class Entity():
     def __init__(self, container, couchDoc):
