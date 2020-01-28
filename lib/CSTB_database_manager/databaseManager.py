@@ -9,12 +9,14 @@ from CSTB_database_manager.engine.word_detect import sgRNAfastaSearch
 from CSTB_database_manager.engine.wordIntegerIndexing import indexAndOccurence as computeMotifsIndex
 import CSTB_database_manager.db.taxon as taxonDBHandler
 import CSTB_database_manager.db.genome as genomeDBHandler
-import CSTB_database_manager.db.tree as treeDBHandler
+
 import CSTB_database_manager.utils.error as error
 from CSTB_database_manager.utils.io import fileHash as fastaHash
 from CSTB_database_manager.utils.io import Zfile as zFile
 from  CSTB_database_manager.db.genome import GenomeEntity as tGenomeEntity
-import CSTB_database_manager.engine.taxonomic_tree as tTree
+# GL for sbatch, temporary hack
+#import CSTB_database_manager.db.tree as treeDBHandler
+#import CSTB_database_manager.engine.taxonomic_tree as tTree
 
 import logging
 logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(message)s')
@@ -43,7 +45,8 @@ class DatabaseManager():
         self.wrapper: wrapper.Wrapper = self._init_wrapper(config["url"], (config["user"], config["password"]))
         self.taxondb = self._init(config["taxondb_name"], taxonDBHandler.TaxonDB)
         self.genomedb = self._init(config["genomedb_name"], genomeDBHandler.GenomeDB)
-        self.treedb = self._init(config["treedb_name"], treeDBHandler.TreeDB)
+        # GL for sbatch, temporary hack
+        #self.treedb = self._init(config["treedb_name"], treeDBHandler.TreeDB)
 
     def _load_config(self, config_file:str)-> ConfigType:
         with open(config_file) as f:

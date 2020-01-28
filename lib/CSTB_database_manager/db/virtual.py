@@ -1,6 +1,6 @@
 import copy
 from datetime import datetime
-import pycouch.wrapper_class as pycouch_wrapper
+import pycouch.wrapper as pycouch_wrapper
 import CSTB_database_manager.utils.error as error
 from typeguard import typechecked
 from typing import TypedDict
