@@ -40,8 +40,8 @@ class DatabaseManager():
 
         config: ConfigType = self._load_config(config_file)
         self.wrapper: wrapper.Wrapper = self._init_wrapper(config["url"], (config["user"], config["password"]))
-        self.taxondb = self._init_genomedb(config["taxondb_name"], taxonDBHandler.TaxonDB)
-        self.genomedb = self._init_genomedb(config["genomedb_name"], genomeDBHandler.GenomeDB)
+        self.taxondb = self._init(config["taxondb_name"], taxonDBHandler.TaxonDB)
+        self.genomedb = self._init(config["genomedb_name"], genomeDBHandler.GenomeDB)
         self.treedb = self._init(config["treedb_name"], treeDBHandler.TreeDB)
 
     def _load_config(self, config_file:str)-> ConfigType:
