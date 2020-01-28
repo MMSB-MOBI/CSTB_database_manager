@@ -3,14 +3,15 @@ import json, copy, pickle
 from typing import TypedDict, Tuple, Dict
 from typeguard import typechecked
 
-import pycouch.wrapper_class as wrapper
+import pycouch.wrapper as wrapper
 
 from CSTB_database_manager.engine.word_detect import sgRNAfastaSearch
+from CSTB_database_manager.engine.wordIntegerIndexing import indexAndOccurence as computeMotifsIndex
 import CSTB_database_manager.db.taxon as taxonDBHandler
 import CSTB_database_manager.db.genome as genomeDBHandler
 import CSTB_database_manager.utils.error as error
 from CSTB_database_manager.utils.io import fileHash as fastaHash
-
+from CSTB_database_manager.utils.io import Zfile as zFile
 from  CSTB_database_manager.db.genome import GenomeEntity as tGenomeEntity
 
 class ConfigType(TypedDict):
@@ -70,42 +71,8 @@ class DatabaseManager():
             self.wrapper.setKeyMappingRules(json.load(fp))
         print(f"Loaded {len(self.wrapper.queue_mapper)} volumes mapping rules" )
     
-    def getGenomeEntity(self, fastaMd5:str):
+    def getGenomeEntity(self, fastaMd5):#:str):
         return self.genomedb.get(fastaMd5)
-
-    def addGenomeOld(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
-        print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf assembly : {gcf}\naccession number : {acc}")
-        # Check if fasta already exists in genomeDB
-        fasta_md5 = fastaHash(fasta)
-        genomeDB_doc = self.genomedb.get(fasta_md5)
-
-        if not genomeDB_doc : #create doc, not complete now because we don't have the taxon uuid
-            print("Genome not found, will be inserted")
-            genomeDB_doc = self.genomedb.create_insert_doc(fasta_md5, gcf, acc)
-        else: # Fasta exists, check if gcf and acc are the same ? 
-            if genomeDB_doc["gcf_assembly"] != gcf or genomeDB_doc["accession_number"] != acc:
-                print(f'WARN: Fasta already exists with other gcf and/or accession (gcf : {genomeDB_doc["gcf_assembly"]}, accession : {genomeDB_doc["accession_number"]}). Update genome if you want to give new attributes.')
-                return
-
-        # Check if taxon already exists in taxonDB
-        taxonDB_doc = self.taxondb.get(name, taxid)
-
-        if not taxonDB_doc : 
-            print("Taxon not found, will be inserted")
-            taxonDB_doc = self.taxondb.create_insert_doc(name, taxid)
-        
-        # Get final docs after match making
-        final_genomeDB_doc, final_taxonDB_doc = self._makeMatching(genomeDB_doc, taxonDB_doc)
-        #Insert final docs if change
-
-        #Replace this by a store function associated with Doc class
-        if genomeDB_doc != final_genomeDB_doc:
-            print("Insert genome")
-            self.genomedb.add(final_genomeDB_doc)
-        
-        if taxonDB_doc != final_taxonDB_doc:
-            print("Insert taxon")
-            self.taxondb.add(final_taxonDB_doc)
 
     def addGenome(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
         print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf: {gcf}\nacc: {acc}")
@@ -114,7 +81,7 @@ class DatabaseManager():
             fasta_md5 = fastaHash(fasta)
         except FileNotFoundError:
             print(f"Can't add your entry because fasta file is not found.")
-            return
+            return       
 
         try:
             genome_entity = self.genomedb.get(fasta_md5, gcf, acc)
@@ -188,7 +155,7 @@ class DatabaseManager():
     
     def _get_fasta_size(self, fasta: str) -> Dict:
         dic_size = {}
-        with open(fasta) as f: 
+        with zFile(fasta) as f: 
             for l in f: 
                 if l.startswith('>'):
                     ref = l.split(" ")[0].lstrip(">")
@@ -203,12 +170,26 @@ class DatabaseManager():
         print("UPDATE")
 
 
-    def addFastaMotifs(self, fastaFileList, batchSize=10000, cacheLocation=None):
+    def addFastaMotifs(self, fastaFileList, batchSize=10000, indexLocation=None, cacheLocation=None):
         for fastaFile in fastaFileList:
             sgRNA_data, uuid, ans = self.addFastaMotif(fastaFile, batchSize)
-            if cacheLocation:
-                pickle.dump(sgRNA_data, open(cacheLocation + "/" + uuid + ".p", "wb"), protocol=3)
+            if cacheLocation and not ans is None:
+                fPickle = cacheLocation + "/" + uuid + ".p"
+                pickle.dump(sgRNA_data, open(fPickle, "wb"), protocol=3)
+                print(f"databaseManager::addFastaMotif:pickling of \"{len(sgRNA_data.keys())}\" sgnRNA motifs wrote to {fPickle}")
        
+            if indexLocation:
+                indexLen = self.addIndexMotif(indexLocation, sgRNA_data, uuid)
+                print(f"databaseManager::addFastaMotif:indexation of \"{indexLen}\" sgnRNA motifs wrote to {indexLocation}/{uuid}.index")
+       
+    def addIndexMotif(self, location, sgnRNAdata, uuid):
+        indexData = computeMotifsIndex(sgnRNAdata)
+        with open (location + '/' + uuid + '.index', 'w') as fp:
+            fp.write(str(len(indexData)) + "\n")
+            for datum in indexData:
+                fp.write( ' '.join([str(d) for d in datum]) + "\n")
+        return len(indexData)
+
     def addFastaMotif(self, fastaFile, batchSize):   
         uuid = fastaHash(fastaFile)
         genomeEntity = self.getGenomeEntity(uuid)
@@ -216,8 +197,11 @@ class DatabaseManager():
             raise error.NoGenomeEntity(fastaFile)
         sgRNA_data = sgRNAfastaSearch(fastaFile, uuid)
         allKeys = list(sgRNA_data.keys())
-        print(f"databaseManager::addFastaMotif:Slicing \"{uuid}\" to volDocAdd its {len(allKeys)} genomic sgRNA motif")
-       
+        if not self.wrapper.hasKeyMappingRules:
+            print(f"databaseManager::addFastaMotif:Without mapping rules, {len(allKeys)} computed sgRNA motifs will not be inserted into database")
+            return (sgRNA_data, uuid, None)
+        
+        print(f"databaseManager::addFastaMotif:Slicing \"{uuid}\" to volDocAdd its {len(allKeys)} genomic sgRNA motif")       
         for i in range(0,len(allKeys), batchSize):
           
             j = i + batchSize if i + batchSize < len(allKeys) else len(allKeys)
