@@ -1,4 +1,4 @@
-import hashlib, gzip, os
+import hashlib, gzip, os, re
 
 # Expected format
 
@@ -61,10 +61,14 @@ def tsvReader(tsvFilePath, _min=None, _max=None):
 >>> hasher.hexdigest()
 'a02b540693255caec7cf9412da86e62f'
 '''
+## Compute hash on fasta striping: header-line, spaces, and new-line
 def fileHash(filePath):
     hasher = hashlib.md5()
     with Zfile(filePath, 'rb') as f:
-        buf = f.read()
+        f.readline()# discard header
+        buf = str(f.read(), 'utf-8')# convert bte to string for striping               
+        buf = re.sub( r'\s+', '',  buf)
+        buf = buf.encode('utf-8')# encode for md5 hash
         hasher.update(buf)
     return hasher.hexdigest()
 
