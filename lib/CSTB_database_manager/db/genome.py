@@ -82,7 +82,7 @@ class GenomeEntity(CSTB_database_manager.db.virtual.Entity):
         self.size = couchDoc["size"]
 
     def __eq__(self, other :'GenomeEntity') -> bool:
-        return self.couchDoc == other.couchDoc
+        return self.fasta_md5 == other.fasta_md5 and self.taxon == other.taxon and self.gcf_assembly == other.gcf_assembly and self.accession_number == other.accession_number and self.size == other.size
     
     def __str__(self) -> str :
         return str(self.__dict__)

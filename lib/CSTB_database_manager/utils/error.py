@@ -13,3 +13,7 @@ class ConsistencyError(Exception):
 class NoGenomeEntity(Exception):
     """Raised when a mandatory  get for a genome entity returned None"""
     pass
+
+class MangoQueryError(Exception):
+    """Raised when an error occurs while execute mango query"""
+    pass
