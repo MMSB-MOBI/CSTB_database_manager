@@ -73,40 +73,6 @@ class DatabaseManager():
     def getGenomeEntity(self, fastaMd5:str):
         return self.genomedb.get(fastaMd5)
 
-    def addGenomeOld(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
-        print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf assembly : {gcf}\naccession number : {acc}")
-        # Check if fasta already exists in genomeDB
-        fasta_md5 = fastaHash(fasta)
-        genomeDB_doc = self.genomedb.get(fasta_md5)
-
-        if not genomeDB_doc : #create doc, not complete now because we don't have the taxon uuid
-            print("Genome not found, will be inserted")
-            genomeDB_doc = self.genomedb.create_insert_doc(fasta_md5, gcf, acc)
-        else: # Fasta exists, check if gcf and acc are the same ? 
-            if genomeDB_doc["gcf_assembly"] != gcf or genomeDB_doc["accession_number"] != acc:
-                print(f'WARN: Fasta already exists with other gcf and/or accession (gcf : {genomeDB_doc["gcf_assembly"]}, accession : {genomeDB_doc["accession_number"]}). Update genome if you want to give new attributes.')
-                return
-
-        # Check if taxon already exists in taxonDB
-        taxonDB_doc = self.taxondb.get(name, taxid)
-
-        if not taxonDB_doc : 
-            print("Taxon not found, will be inserted")
-            taxonDB_doc = self.taxondb.create_insert_doc(name, taxid)
-        
-        # Get final docs after match making
-        final_genomeDB_doc, final_taxonDB_doc = self._makeMatching(genomeDB_doc, taxonDB_doc)
-        #Insert final docs if change
-
-        #Replace this by a store function associated with Doc class
-        if genomeDB_doc != final_genomeDB_doc:
-            print("Insert genome")
-            self.genomedb.add(final_genomeDB_doc)
-        
-        if taxonDB_doc != final_taxonDB_doc:
-            print("Insert taxon")
-            self.taxondb.add(final_taxonDB_doc)
-
     def addGenome(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
         print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf: {gcf}\nacc: {acc}")
 
