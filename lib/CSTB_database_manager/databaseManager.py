@@ -224,6 +224,10 @@ class DatabaseManager():
 
     
     def createTree(self):
+        """
+        Create taxonomic tree from taxon database. Will automatically search taxon, create tree and store tree into database.
+        Use engine.taxonomic_tree to create and format tree. 
+        """
         # Find all taxids
         try:
             total_taxons = self.taxondb.number_of_entries()
@@ -235,6 +239,7 @@ class DatabaseManager():
             "selector": {
                 "taxid" : {"$ne": None}
             },
+            "fields": ["taxid", "name", "current"],
             "limit":total_taxons
         }
         try:
@@ -244,12 +249,13 @@ class DatabaseManager():
             return
 
         logging.info(f"{len(docs)} taxids found")
-        dic_taxid = {d["taxid"]:d["name"] for d in docs}
+        dic_taxid = {d["taxid"]:{"name": d["name"], "uuid": d["current"]} for d in docs}
 
         mango_query = {
             "selector": {
                 "taxid" : {"$eq": None}
             },
+            "fields": ["name", "current"],
             "limit": total_taxons
         }
         try:
@@ -259,16 +265,17 @@ class DatabaseManager():
             return
 
         logging.info(f"{len(docs)} other taxon found")
-        other_taxons = [ d["name"] for d in docs ]
+        dic_others = {d["name"]:{"uuid": d["current"]} for d in docs }
 
-        if not dic_taxid and not other_taxons:
+
+        if not dic_taxid and not dic_others:
             print(f"No taxid found in {self.taxondb.db_name}")
             return
 
         # Create tree
-
-        tree = tTree.create_tree(dic_taxid, other_taxons)
+        tree = tTree.create_tree(dic_taxid, dic_others)
         tree_json = tree.get_json()
+        print(tree_json)
         
         tree_entity = self.treedb.createNewTree(tree_json)
         tree_entity.store()
