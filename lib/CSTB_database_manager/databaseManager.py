@@ -40,8 +40,8 @@ class DatabaseManager():
 
         config: ConfigType = self._load_config(config_file)
         self.wrapper: wrapper.Wrapper = self._init_wrapper(config["url"], (config["user"], config["password"]))
-        self.taxondb: taxonDBHandler.TaxonDB = self._init_taxondb(config["taxondb_name"])
-        self.genomedb : genomeDBHandler.GenomeDB = self._init_genomedb(config["genomedb_name"])
+        self.taxondb = self._init_genomedb(config["taxondb_name"], taxonDBHandler.TaxonDB)
+        self.genomedb = self._init_genomedb(config["genomedb_name"], genomeDBHandler.GenomeDB)
         self.treedb = self._init(config["treedb_name"], treeDBHandler.TreeDB)
 
     def _load_config(self, config_file:str)-> ConfigType:
@@ -61,22 +61,7 @@ class DatabaseManager():
             print(f"INFO: Create {database_name}")
             self.wrapper.couchCreateDB(database_name)
         return database_obj(self.wrapper, database_name)
-        
-
-    def _init_taxondb(self, taxondb_name: str) -> taxonDBHandler.TaxonDB:
-        # Check taxondb existence, if not create it
-        if not self.wrapper.couchTargetExist(taxondb_name): # Maybe do this in TaxonDB class?
-            print(f"INFO: Create {taxondb_name}")
-            self.wrapper.couchCreateDB(taxondb_name)
-        return taxonDBHandler.TaxonDB(self.wrapper, taxondb_name)
     
-    def _init_genomedb(self, genomedb_name: str) -> genomeDBHandler.GenomeDB:
-        if not self.wrapper.couchTargetExist(genomedb_name): #Maybe do this in GenomeDB class?
-            print(f"INFO: Create {genomedb_name}")
-            self.wrapper.couchCreateDB(genomedb_name)
-        return genomeDBHandler.GenomeDB(self.wrapper, genomedb_name)
-
-
     def setDebugMode(self, value=True):
         wrapper.DEBUG_MODE = value
 
