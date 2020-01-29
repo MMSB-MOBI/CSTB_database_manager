@@ -16,8 +16,7 @@ class GenomeDB(CSTB_database_manager.db.virtual.Database):
     def __init__(self, wrapper, db_name):
         super().__init__(wrapper, db_name)
 
-    def get(self, fasta_md5: str, gcf: str = None, acc: str = None) -> Optional['GenomeEntity']:
-
+    def get(self, fasta_md5:str, gcf: str = None, acc: str = None) -> Optional['GenomeEntity']:
         mango_query = {"selector":
                 {"fasta_md5": fasta_md5}
         }

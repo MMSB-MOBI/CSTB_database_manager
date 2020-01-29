@@ -17,7 +17,6 @@ from docopt import docopt
 def occWeight(data):
     k,datum = data
     n = 0
-    #print(datum)
     for o in datum:
         for _o in datum[o]:
             n += len(datum[o][_o])
@@ -40,6 +39,14 @@ def indexAndOccurencePickle(file_path, target_file):
 
     return len(data)
 
+# same as index pickle, coding and order wise, 
+# we just add a second field to each wordCode line, the occurence number
+def indexAndOccurence(data):
+    word_list = list(data.keys())
+    wordLen = len(word_list[0])
+    data = sorted( [ (weightWord(w, ["A", "T", "C", "G"], wordLen), occWeight((w, data[w])) ) for w in word_list], key=lambda x: x[0])
+    return data
+    
 def indexPickle(file_path, target_file):
     """
     Take a pickle file, code it and write it in a file

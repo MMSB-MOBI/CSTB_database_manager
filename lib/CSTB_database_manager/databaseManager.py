@@ -3,17 +3,20 @@ import json, copy, pickle
 from typing import TypedDict, Tuple, Dict
 from typeguard import typechecked
 
-import pycouch.wrapper_class as wrapper
+import pycouch.wrapper as wrapper
 
 from CSTB_database_manager.engine.word_detect import sgRNAfastaSearch
+from CSTB_database_manager.engine.wordIntegerIndexing import indexAndOccurence as computeMotifsIndex
 import CSTB_database_manager.db.taxon as taxonDBHandler
 import CSTB_database_manager.db.genome as genomeDBHandler
-import CSTB_database_manager.db.tree as treeDBHandler
+
 import CSTB_database_manager.utils.error as error
 from CSTB_database_manager.utils.io import fileHash as fastaHash
-
+from CSTB_database_manager.utils.io import Zfile as zFile
 from  CSTB_database_manager.db.genome import GenomeEntity as tGenomeEntity
-import CSTB_database_manager.engine.taxonomic_tree as tTree
+# GL for sbatch, temporary hack
+#import CSTB_database_manager.db.tree as treeDBHandler
+#import CSTB_database_manager.engine.taxonomic_tree as tTree
 
 import logging
 logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(message)s')
@@ -39,7 +42,8 @@ class DatabaseManager():
         self.wrapper: wrapper.Wrapper = self._init_wrapper(config["url"], (config["user"], config["password"]))
         self.taxondb = self._init(config["taxondb_name"], taxonDBHandler.TaxonDB)
         self.genomedb = self._init(config["genomedb_name"], genomeDBHandler.GenomeDB)
-        self.treedb = self._init(config["treedb_name"], treeDBHandler.TreeDB)
+        # GL for sbatch, temporary hack
+        #self.treedb = self._init(config["treedb_name"], treeDBHandler.TreeDB)
 
     def _load_config(self, config_file:str)-> ConfigType:
         with open(config_file) as f:
@@ -67,7 +71,7 @@ class DatabaseManager():
             self.wrapper.setKeyMappingRules(json.load(fp))
         print(f"Loaded {len(self.wrapper.queue_mapper)} volumes mapping rules" )
     
-    def getGenomeEntity(self, fastaMd5:str):
+    def getGenomeEntity(self, fastaMd5):#:str):
         return self.genomedb.get(fastaMd5)
 
     def addGenome(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
@@ -92,7 +96,7 @@ class DatabaseManager():
             fasta_md5 = fastaHash(fasta)
         except FileNotFoundError:
             print(f"Can't add your entry because fasta file is not found.")
-            return
+            return       
 
         try:
             genome_entity = self.genomedb.get(fasta_md5, gcf, acc)
@@ -166,7 +170,7 @@ class DatabaseManager():
     
     def _get_fasta_size(self, fasta: str) -> Dict:
         dic_size = {}
-        with open(fasta) as f: 
+        with zFile(fasta) as f: 
             for l in f: 
                 if l.startswith('>'):
                     ref = l.split(" ")[0].lstrip(">")
@@ -233,8 +237,6 @@ class DatabaseManager():
             genome.remove()
             taxon.store()
 
-
-    
     def createTree(self):
         """
         Create taxonomic tree from taxon database. Will automatically search taxon, create tree and store tree into database.
@@ -294,12 +296,27 @@ class DatabaseManager():
         
         
         
-    def addFastaMotifs(self, fastaFileList, batchSize=10000, cacheLocation=None):
+ 
+    def addFastaMotifs(self, fastaFileList, batchSize=10000, indexLocation=None, cacheLocation=None):
         for fastaFile in fastaFileList:
             sgRNA_data, uuid, ans = self.addFastaMotif(fastaFile, batchSize)
-            if cacheLocation:
-                pickle.dump(sgRNA_data, open(cacheLocation + "/" + uuid + ".p", "wb"), protocol=3)
+            if cacheLocation and not ans is None:
+                fPickle = cacheLocation + "/" + uuid + ".p"
+                pickle.dump(sgRNA_data, open(fPickle, "wb"), protocol=3)
+                print(f"databaseManager::addFastaMotif:pickling of \"{len(sgRNA_data.keys())}\" sgnRNA motifs wrote to {fPickle}")
        
+            if indexLocation:
+                indexLen = self.addIndexMotif(indexLocation, sgRNA_data, uuid)
+                print(f"databaseManager::addFastaMotif:indexation of \"{indexLen}\" sgnRNA motifs wrote to {indexLocation}/{uuid}.index")
+       
+    def addIndexMotif(self, location, sgnRNAdata, uuid):
+        indexData = computeMotifsIndex(sgnRNAdata)
+        with open (location + '/' + uuid + '.index', 'w') as fp:
+            fp.write(str(len(indexData)) + "\n")
+            for datum in indexData:
+                fp.write( ' '.join([str(d) for d in datum]) + "\n")
+        return len(indexData)
+
     def addFastaMotif(self, fastaFile, batchSize):   
         uuid = fastaHash(fastaFile)
         genomeEntity = self.getGenomeEntity(uuid)
@@ -307,8 +324,11 @@ class DatabaseManager():
             raise error.NoGenomeEntity(fastaFile)
         sgRNA_data = sgRNAfastaSearch(fastaFile, uuid)
         allKeys = list(sgRNA_data.keys())
-        print(f"databaseManager::addFastaMotif:Slicing \"{uuid}\" to volDocAdd its {len(allKeys)} genomic sgRNA motif")
-       
+        if not self.wrapper.hasKeyMappingRules:
+            print(f"databaseManager::addFastaMotif:Without mapping rules, {len(allKeys)} computed sgRNA motifs will not be inserted into database")
+            return (sgRNA_data, uuid, None)
+        
+        print(f"databaseManager::addFastaMotif:Slicing \"{uuid}\" to volDocAdd its {len(allKeys)} genomic sgRNA motif")       
         for i in range(0,len(allKeys), batchSize):
           
             j = i + batchSize if i + batchSize < len(allKeys) else len(allKeys)
