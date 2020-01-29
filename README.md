@@ -10,7 +10,8 @@ To initialize CSTB database via databaseManager, you must provide a json config 
     "user": "couch_agent",
     "password": "couch",
     "taxondb_name": "taxon_db",
-    "genomedb_name": "genome_db"
+    "genomedb_name": "genome_db",
+    "treedb_name" : "tree_db"
 }
 ```
 
@@ -54,6 +55,40 @@ Genome database is a collection of this type of documents :
 ```
 `taxon` are reference to Taxon document. `gcf_assembly` and `accession_number` can be `null`
 
+#### Tree database
+Tree database just store taxonomic tree with correct format to be display by jquery. Example : 
+```
+{
+  "_id": "maxi_tree",
+  "_rev": "2-ded77c3388cd803d160d8e2a0df82481",
+  "date": "28/01/2020 15:45:12",
+  "tree": {
+    "text": "root",
+    "children": [
+      {
+        "text": "Myxococcales",
+        "children": [
+          {
+            "text": "Cystobacterineae",
+            "children": [
+              {
+                "text": "Archangium gephyra"
+              },
+              {
+                "text": "Myxococcus macrosporus"
+              }
+            ]
+          },
+          {
+            "text": "Chondromyces crocatus"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
 ### Operations
 
 #### Add a new element 
@@ -84,3 +119,8 @@ Insertion will not be done and we ask for update when:
 #### Remove taxon
 
 #### Change taxon version
+
+#### Create taxonomic tree from taxon database
+```
+db.createTree()
+```
