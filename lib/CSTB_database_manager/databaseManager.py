@@ -30,9 +30,6 @@ class ConfigType(TypedDict):
 class DatabaseManager():
     """
     Database manager object
-
-    :param wrapper: pouet
-    :type wrapper: pyCouch wrapper
     """
     def __init__(self, config_file:str) -> None:
         if not isinstance(config_file, str):
@@ -74,6 +71,21 @@ class DatabaseManager():
         return self.genomedb.get(fastaMd5)
 
     def addGenome(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
+        """
+        Take informations about genome and corresponding taxon and insert them in databases with correct links.
+
+        :param fasta: Path to fasta file
+        :param name: Taxon name
+        :param taxid: Taxid if available
+        :param gcf: GCF accession for assembly if available
+        :param acc: accession number if available
+
+        :type fasta: path
+        :type name: str
+        :type taxid: int
+        :type gcf: str
+        :type acc: str
+        """
         print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf: {gcf}\nacc: {acc}")
 
         try :
