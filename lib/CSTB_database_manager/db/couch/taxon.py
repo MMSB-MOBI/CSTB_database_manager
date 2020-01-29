@@ -1,7 +1,7 @@
 from typeguard import typechecked
 from typing import TypedDict, Optional, List
-import CSTB_database_manager.db.virtual
-import CSTB_database_manager.db.genome as genomeDB
+import CSTB_database_manager.db.couch.virtual
+import CSTB_database_manager.db.couch.genome as genomeDB
 import CSTB_database_manager.utils.error as error
 
 TaxonDoc = TypedDict("TaxonDoc", 
@@ -14,7 +14,7 @@ class PositivePutAnswer(TypedDict):
     rev: str
 
 @typechecked
-class TaxonDB(CSTB_database_manager.db.virtual.Database):
+class TaxonDB(CSTB_database_manager.db.couch.virtual.Database):
     def __init__(self, wrapper, db_name):
         super().__init__(wrapper, db_name)
 
@@ -80,7 +80,7 @@ class TaxonDB(CSTB_database_manager.db.virtual.Database):
 
 
 @typechecked
-class TaxonEntity(CSTB_database_manager.db.virtual.Entity):
+class TaxonEntity(CSTB_database_manager.db.couch.virtual.Entity):
     def __init__(self, container : 'TaxonDB', couchDoc: TaxonDoc):
         """Represent an entry in taxon database"""
         super().__init__(container, couchDoc)

@@ -2,6 +2,7 @@
 
 Usage:
     add_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [--map <volume_mapper>] [--index <index_file_dump_loc>] [ --min <start_index> --max <stop_index> --cache <pickle_cache> ] [ --debug ] [ --size <batch_size> ]
+    add_genome.py --config <conf> --genomes <genome_list>  --location <fasta_folder> --blast
 
 Options:
     -h --help
@@ -28,10 +29,8 @@ from CSTB_database_manager.utils.io import tsvReader, zExists
 if __name__ == "__main__":
     ARGS = docopt(__doc__, version="1.0.0")
 
-    print(ARGS)
-
     db = dbManager.DatabaseManager(ARGS["--config"])
-   
+    
     x = int(ARGS["--min"]) if not ARGS["--min"] is None  else 0
     y = int(ARGS["--max"]) if not ARGS["--max"] is None else len([ _ for _ in tsvReader(ARGS["--genomes"])])
     bSize = int(ARGS["--size"]) if ARGS["--size"] else 10000                
@@ -47,8 +46,6 @@ if __name__ == "__main__":
     fastaFileList = []
     for (fasta, name, taxid, gcf, acc) in tsvReader(ARGS["--genomes"], x, y):
         
-       
-        
         fastaFileList.append(ARGS["--location"] + '/' + fasta)
         
         #print(zHash(fastaFileList[-1]))
@@ -59,13 +56,16 @@ if __name__ == "__main__":
         print(f"db.AddGenome({fastaFileList[-1]}, {name}, {taxid}, {gcf}, {acc})")           
         db.addGenome(fastaFileList[-1], name, taxid, gcf, acc)
 
+
     if ARGS["--map"]: 
         db.setMotifAgent(ARGS["--map"])
-        
-    print(f"Proceeding to the db.AddMotifs of {len(fastaFileList)} fasta")  
     
-    db.addFastaMotifs(fastaFileList, bSize , indexLocation, cacheLocation)
+    if ARGS["--map"] or ARGS["--index"]:
+        print(f"Proceeding to the db.AddMotifs of {len(fastaFileList)} fasta")  
+        db.addFastaMotifs(fastaFileList, bSize , indexLocation, cacheLocation)
 
+    if ARGS["--blast"]: 
+        db.addBlast(fastaFileList)
 
 """
 for i in `seq 0 255`

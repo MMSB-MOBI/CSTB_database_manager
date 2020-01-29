@@ -1,6 +1,6 @@
 from typeguard import typechecked
 from typing import TypedDict, Optional, Dict
-import CSTB_database_manager.db.virtual
+import CSTB_database_manager.db.couch.virtual
 import CSTB_database_manager.utils.error as error
 
 
@@ -12,7 +12,7 @@ class PositivePutAnswer(TypedDict): #Probably not define this type here, it's in
     rev: str
 
 @typechecked
-class GenomeDB(CSTB_database_manager.db.virtual.Database):
+class GenomeDB(CSTB_database_manager.db.couch.virtual.Database):
     def __init__(self, wrapper, db_name):
         super().__init__(wrapper, db_name)
 
@@ -71,7 +71,7 @@ class GenomeDB(CSTB_database_manager.db.virtual.Database):
         return None
 
 @typechecked
-class GenomeEntity(CSTB_database_manager.db.virtual.Entity):
+class GenomeEntity(CSTB_database_manager.db.couch.virtual.Entity):
     def __init__(self, container: 'GenomeDB', couchDoc: GenomeDoc):
         super().__init__(container, couchDoc)
         self.fasta_md5 = couchDoc["fasta_md5"]
