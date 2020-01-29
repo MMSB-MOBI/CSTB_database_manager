@@ -62,8 +62,8 @@ class GenomeDB(CSTB_database_manager.db.virtual.Database):
         }
         return GenomeEntity(self, doc)
 
-    def add(self, doc: GenomeDoc) -> PositivePutAnswer:
-        return self.wrapper.couchAddDoc(doc, target = self.db_name, key = doc["_id"])
+    #def add(self, doc: GenomeDoc) -> PositivePutAnswer:
+    #    return self.wrapper.couchAddDoc(doc, target = self.db_name, key = doc["_id"])
 
     def getFromID(self, id: str) -> Optional['GenomeEntity']:
         doc = self.wrapper.couchGetDoc(self.db_name, id)

@@ -82,6 +82,7 @@ class TaxonDB(CSTB_database_manager.db.virtual.Database):
 @typechecked
 class TaxonEntity(CSTB_database_manager.db.virtual.Entity):
     def __init__(self, container : 'TaxonDB', couchDoc: TaxonDoc):
+        """Represent an entry in taxon database"""
         super().__init__(container, couchDoc)
         self.name = couchDoc["name"]
         self.taxid = couchDoc["taxid"]
@@ -89,7 +90,7 @@ class TaxonEntity(CSTB_database_manager.db.virtual.Entity):
         self.genomeColl = couchDoc["genomeColl"] if couchDoc.get("genomeColl") else []
     
     def __eq__(self, other : 'TaxonEntity') -> bool:
-        return self.couchDoc == other.couchDoc
+        return self.taxid == other.taxid and self.name == other.name and self.current == other.current and self.genomeColl == other.genomeColl
 
     
 
