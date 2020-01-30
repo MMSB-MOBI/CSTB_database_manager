@@ -6,8 +6,9 @@ from CSTB_database_manager.utils.io import fileHash
 import os, glob, re, pickle
 from CSTB_database_manager.utils.io import which
 from CSTB_database_manager.utils.io import gunzipToFile as gunzip
+from CSTB_database_manager.utils.io import fileToGunzip as gzip
 
-from subprocess import call
+from subprocess import check_call
 
 MAX_COUNT=25
 
@@ -27,6 +28,8 @@ class BlastDB ():
     
         if self.empty:
             print(f"Database {self.tag} seems empty")
+            self.data = {}
+            self.checksum = None
             return
 
         print(f"blastdb::_parsingDatabase:Computing checksum for {self.fastaFile}...")
@@ -151,26 +154,19 @@ class BlastDB ():
             return  _.get('data', None)
 
     def _index(self):
-        global MAX_COUNT
-
         if self.registry['pkl']:
             return self._restoreIndex(f"{self.location}/{self.registry['pkl']}")
             
         print(f"Building index on {self.fastaFile}, "
               f" this may take a while...")
-        COUNT=0
         data = {}
         with zFile(self.fastaFile) as handle:
             for genome_seqrecord in SeqIO.parse(handle, "fasta"):
-                if COUNT > MAX_COUNT:
-                    break
                 genome_seq = genome_seqrecord.seq
                 header = genome_seqrecord.id
-                #print("==>", header)
-                #print(type(genome_seq))
                 _id = hashSequence(str(genome_seq))
                 data[_id] = header
-                COUNT += 1
+        
         print(f"{len(data.keys())} fasta records successfully indexed")
         return data
 
@@ -178,40 +174,63 @@ class BlastDB ():
         for _id, header  in self.data.items():
             yield(_id, header)
 
-
+    # Returns True hash(sequence) is part of index
+    def get(self, **kwargs):
+        if 'seq' in kwargs:
+            return self[hashSequence(seq)]
+            
     def __getitem__(self, hashKey):
         return self.data[hashKey] if hashKey in self.data else None
     
     def add(self, header, sequence, force=False):
-        self._buffer.append( (header, sequence) )
+        key = hashSequence(sequence)
+        if key in self.data:
+            print(f"blast::add:Bouncing {header}, sequence already stored")
+            return
+        self._buffer.append( (header, sequence, key) )
     
     def flush(self):
-        fastaBufferFile = None
-        if not self.fastaFile:
-            self.fastaFile = f"{self.tag}.mfasta.gz"
-            fastaBufferFile = f"{self.tag}.mfasta"
+        print("flushing")
+        self.fastaBufferFile = None
+        if not self.fastaFile:           
+            self.fastaBufferFile = f"{self.location}/{self.tag}.mfasta"
         else:
-            fastaBufferFile = gunzip(self.fastaFile)
+            self.fastaBufferFile = gunzip(self.fastaFile)
         
-        with open (fastaBufferFile, 'a') as fp:
+        with open (self.fastaBufferFile, 'a') as fp:
             for t in self._buffer:
-                fp.write(t[0])
-                fp.write(t[1])
+                fp.write(t[0] + '\n')
+                fp.write(t[1] + '\n')
 
     def clean(self):
-        pass
+        print(f"Cleaning")                
+        print(f"Zipping main fasta record")
+        self.fastaFile = gzip(self.fastaBufferFile)
+        self.checksum  = os.path.getsize(self.fastaFile)
+        os.remove(self.fastaBufferFile)
     
     def _formatdb(self):
         stdRootPath = f"{self.location}/{self.tag}_build"
-        args = ['formatdb']
+        args = ['formatdb', '-t', self.tag, '-i', self.fastaBufferFile, '-l', f"{stdRootPath}.log", '-o', 'T', '-n', self.tag]
+        #formatdb -t $DATABASE_TAG -i $MFASTA -l ${DATABASE_TAG}_build.log -o T -n $DATABASE_TAG
         with open(f"{stdRootPath}.log", 'a') as stdout:
             with open(f"{stdRootPath}.err", 'a') as stderr:
-                call(args, stdout=stdout, stderr=stderr)
+                print(f"Running {args}")
+                check_call(args, stdout=stdout, stderr=stderr, cwd=self.location)
+    
+    def updateIndex(self):
+        for header, seq, hKey in self._buffer:
+            self.data[hKey] = header
 
-    def _close(self):
+    def close(self):
+        print("closing")
         if not self._buffer :
             return
         self.flush()
+        self._formatdb()
+        self.clean()
+        self.updateIndex()
         print(f"blastDB::close: inserting {len(self._buffer)} fasta records before closing")
         fName = self._indexDump() 
-        print(f"Index wrote to {fName}")       
+        print(f"Index wrote to {fName}")
+        

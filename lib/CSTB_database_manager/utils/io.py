@@ -1,4 +1,4 @@
-import hashlib, gzip, os, re
+import hashlib, gzip, os, re, shutil
 from Bio import SeqIO
 # Expected format
 
@@ -11,7 +11,7 @@ def tsvReader(tsvFilePath, _min=None, _max=None):
         i = 0
         for l in f:            
             l_split = list( filter(lambda x:  x != '', l.strip("\n").split("\t") ) )
-            if len(l_split) != 5:
+            if len(l_split) != 6:
                 raise ValueError(f"Current tsv record length is not 5 ({len(l_split)})\n=>{l_split}") 
             fasta = l_split[0]
             if not fasta:
@@ -143,19 +143,25 @@ def which(program):
 
     return None
 
+def fileToGunzip(flatFile):
+    targetFile = f"{flatFile}.gz"
+    with open(flatFile, 'rb') as f_in, gzip.open(targetFile, 'wb') as f_out:
+        shutil.copyfileobj(f_in, f_out)
+    return targetFile
 
 def gunzipToFile(gzipedFile):
     targetFile = gzipedFile.replace('.gz', '')
     with gzip.open(gzipedFile, 'rb') as f:
         file_content = f.read()
-        with open(targetFile, 'w') as fp:
+        with open(targetFile, 'wb') as fp:
             fp.write(file_content)
     return targetFile
 
-
+# yield (full_header, sequence, header_id)
 def zFastaReader(filePath):
      with Zfile(filePath) as handle:
         for genome_seqrecord in SeqIO.parse(handle, "fasta"):
             genome_seq = genome_seqrecord.seq
             ref = genome_seqrecord.id
-            yield(str(ref), str(genome_seq))
+            header = genome_seqrecord.description
+            yield(str(header), str(genome_seq), str(ref))

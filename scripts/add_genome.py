@@ -2,7 +2,7 @@
 
 Usage:
     add_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [--map <volume_mapper>] [--index <index_file_dump_loc>] [ --min <start_index> --max <stop_index> --cache <pickle_cache> ] [ --debug ] [ --size <batch_size> ]
-    add_genome.py --config <conf> --genomes <genome_list>  --location <fasta_folder> --blast
+    add_genome.py --config <conf> --genomes <genome_list>  --location <fasta_folder> --blast [ --min <start_index> --max <stop_index> ]
 
 Options:
     -h --help

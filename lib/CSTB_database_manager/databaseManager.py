@@ -18,7 +18,7 @@ from  CSTB_database_manager.db.couch.genome import GenomeEntity as tGenomeEntity
 # GL for sbatch, temporary hack
 import CSTB_database_manager.db.couch.tree as treeDBHandler
 import CSTB_database_manager.engine.taxonomic_tree as tTree
-import CSTB_database_manager.utils.io.fastaReader as fastaReader
+from CSTB_database_manager.utils.io import zFastaReader
 import logging
 logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(message)s')
 
@@ -84,12 +84,12 @@ class DatabaseManager():
 
     def addBlast(self, fastaList):
         for zFasta in fastaList:
-            fasta_md5 = fastaHash(fasta)
+            fasta_md5 = fastaHash(zFasta)
             genomElem = self.genomedb.get(fasta_md5)
-            print("FF>", genomElem)
-            for header, seq in zFastaReader(zFasta):
-            #self.blastdb.add
-
+            for header, seq, _id  in zFastaReader(zFasta):
+                _header = f">{genomElem._id}|{header.replace(r'/^>//', '')}"
+                self.blastdb.add(_header, seq)
+        self.blastdb.close()
     def addGenome(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
         """
         Take informations about genome and corresponding taxon and insert them in databases with correct links.
