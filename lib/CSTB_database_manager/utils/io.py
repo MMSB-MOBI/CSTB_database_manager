@@ -11,8 +11,8 @@ def tsvReader(tsvFilePath, _min=None, _max=None):
         i = 0
         for l in f:            
             l_split = list( filter(lambda x:  x != '', l.strip("\n").split("\t") ) )
-            if len(l_split) != 5:
-                raise ValueError(f"Current tsv record length is not 5 ({len(l_split)})\n=>{l_split}") 
+            if len(l_split) < 5:
+                raise ValueError(f"Current tsv record length is less than 5 ({len(l_split)})\n=>{l_split}") 
             fasta = l_split[0]
             if not fasta:
                 raise FormatError("genomes list, first column (fasta) is empty")  

@@ -15,8 +15,8 @@ from CSTB_database_manager.utils.io import fileHash as fastaHash
 from CSTB_database_manager.utils.io import Zfile as zFile
 from  CSTB_database_manager.db.genome import GenomeEntity as tGenomeEntity
 # GL for sbatch, temporary hack
-#import CSTB_database_manager.db.tree as treeDBHandler
-#import CSTB_database_manager.engine.taxonomic_tree as tTree
+import CSTB_database_manager.db.tree as treeDBHandler
+import CSTB_database_manager.engine.taxonomic_tree as tTree
 
 import logging
 logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(message)s')
@@ -43,7 +43,7 @@ class DatabaseManager():
         self.taxondb = self._init(config["taxondb_name"], taxonDBHandler.TaxonDB)
         self.genomedb = self._init(config["genomedb_name"], genomeDBHandler.GenomeDB)
         # GL for sbatch, temporary hack
-        #self.treedb = self._init(config["treedb_name"], treeDBHandler.TreeDB)
+        self.treedb = self._init(config["treedb_name"], treeDBHandler.TreeDB)
 
     def _load_config(self, config_file:str)-> ConfigType:
         with open(config_file) as f:
@@ -289,7 +289,6 @@ class DatabaseManager():
         # Create tree
         tree = tTree.create_tree(dic_taxid, dic_others)
         tree_json = tree.get_json()
-        print(tree_json)
         
         tree_entity = self.treedb.createNewTree(tree_json)
         tree_entity.store()
@@ -318,10 +317,11 @@ class DatabaseManager():
         return len(indexData)
 
     def addFastaMotif(self, fastaFile, batchSize):   
-        uuid = fastaHash(fastaFile)
-        genomeEntity = self.getGenomeEntity(uuid)
+        fasta_md5 = fastaHash(fastaFile)
+        genomeEntity = self.getGenomeEntity(fasta_md5)
         if not genomeEntity:
             raise error.NoGenomeEntity(fastaFile)
+        uuid = genomeEntity._id
         sgRNA_data = sgRNAfastaSearch(fastaFile, uuid)
         allKeys = list(sgRNA_data.keys())
         if not self.wrapper.hasKeyMappingRules:

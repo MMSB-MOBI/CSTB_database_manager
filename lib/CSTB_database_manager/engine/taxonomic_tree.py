@@ -1,6 +1,6 @@
 from ete3 import Tree, NCBITaxa, TreeNode
 from typeguard import typechecked
-
+from os import path
 
 @typechecked
 class HomemadeTree:
@@ -58,7 +58,10 @@ class HomemadeNode:
 
 
 def create_tree(dic_taxid, dic_others):
-    ncbi = NCBITaxa()
+    try:
+        ncbi = load_ncbi()
+    except Exception as e:
+        print(f"Error when load ete3 ncbi\n{e}")
     #Create first tree from taxids
     tree = ncbi.get_topology(list(dic_taxid.keys()))
     for node in tree.iter_descendants():
@@ -77,4 +80,12 @@ def create_tree(dic_taxid, dic_others):
         unclassified_branch.add_children([HomemadeNode(t, dic_others[t]["uuid"]) for t in dic_others])
 
     return myTree
+
+def load_ncbi(sql_file = "/mobi/group/databases/ete3/.etetoolkit/taxa.sqlite", taxdump_file = "/mobi/group/databases/ete3/taxdump.tar.gz"): #Give them in config ? 
+    if not path.exists(sql_file):
+        ncbi = NCBITaxa(dbfile = sql_file, taxdump_file = taxdump_file)
+    else:
+        ncbi = NCBITaxa(dbfile = sql_file)
+    return ncbi
+
     
