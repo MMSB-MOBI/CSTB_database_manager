@@ -7,17 +7,18 @@ import pycouch.wrapper as wrapper
 
 from CSTB_database_manager.engine.word_detect import sgRNAfastaSearch
 from CSTB_database_manager.engine.wordIntegerIndexing import indexAndOccurence as computeMotifsIndex
-import CSTB_database_manager.db.taxon as taxonDBHandler
-import CSTB_database_manager.db.genome as genomeDBHandler
+import CSTB_database_manager.db.couch.taxon as taxonDBHandler
+import CSTB_database_manager.db.couch.genome as genomeDBHandler
+import CSTB_database_manager.db.blast as blastDBHandler
 
 import CSTB_database_manager.utils.error as error
 from CSTB_database_manager.utils.io import fileHash as fastaHash
 from CSTB_database_manager.utils.io import Zfile as zFile
-from  CSTB_database_manager.db.genome import GenomeEntity as tGenomeEntity
+from  CSTB_database_manager.db.couch.genome import GenomeEntity as tGenomeEntity
 # GL for sbatch, temporary hack
-import CSTB_database_manager.db.tree as treeDBHandler
+import CSTB_database_manager.db.couch.tree as treeDBHandler
 import CSTB_database_manager.engine.taxonomic_tree as tTree
-
+from CSTB_database_manager.utils.io import zFastaReader
 import logging
 logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(message)s')
 
@@ -28,6 +29,7 @@ class ConfigType(TypedDict):
     taxondb_name: str
     genomedb_name: str
     treedb_name: str
+    blastdb_path : str
 
 @typechecked
 class DatabaseManager():
@@ -44,6 +46,12 @@ class DatabaseManager():
         self.genomedb = self._init(config["genomedb_name"], genomeDBHandler.GenomeDB)
         # GL for sbatch, temporary hack
         self.treedb = self._init(config["treedb_name"], treeDBHandler.TreeDB)
+
+        if not "blastdb_path" in config:
+            print(f"DatabaseManager:init:Warning no blast database specified")
+            self.blastdb = None
+        else:
+            self.blastdb = blastDBHandler.connect(config["blastdb_path"])
 
     def _load_config(self, config_file:str)-> ConfigType:
         with open(config_file) as f:
@@ -62,7 +70,7 @@ class DatabaseManager():
             print(f"INFO: Create {database_name}")
             self.wrapper.couchCreateDB(database_name)
         return database_obj(self.wrapper, database_name)
-    
+
     def setDebugMode(self, value=True):
         wrapper.DEBUG_MODE = value
 
@@ -74,6 +82,14 @@ class DatabaseManager():
     def getGenomeEntity(self, fastaMd5):#:str):
         return self.genomedb.get(fastaMd5)
 
+    def addBlast(self, fastaList):
+        for zFasta in fastaList:
+            fasta_md5 = fastaHash(zFasta)
+            genomElem = self.genomedb.get(fasta_md5)
+            for header, seq, _id  in zFastaReader(zFasta):
+                _header = f">{genomElem._id}|{header.replace(r'/^>//', '')}"
+                self.blastdb.add(_header, seq)
+        self.blastdb.close()
     def addGenome(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
         """
         Take informations about genome and corresponding taxon and insert them in databases with correct links.

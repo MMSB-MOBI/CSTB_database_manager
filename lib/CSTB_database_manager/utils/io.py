@@ -1,5 +1,5 @@
-import hashlib, gzip, os, re
-
+import hashlib, gzip, os, re, shutil
+from Bio import SeqIO
 # Expected format
 
 #fasta   taxid   name    gcf     accession  ftp
@@ -61,15 +61,42 @@ def tsvReader(tsvFilePath, _min=None, _max=None):
 >>> hasher.hexdigest()
 'a02b540693255caec7cf9412da86e62f'
 '''
+MAX_CHAR = 100000
 ## Compute hash on fasta striping: header-line, spaces, and new-line
-def fileHash(filePath):
+def fileHash(filePath, noHeader=True, stripinSpace=True):
+    global MAX_CHAR
     hasher = hashlib.md5()
     with Zfile(filePath, 'rb') as f:
-        f.readline()# discard header
-        buf = str(f.read(), 'utf-8')# convert bte to string for striping               
-        buf = re.sub( r'\s+', '',  buf)
-        buf = buf.encode('utf-8')# encode for md5 hash
-        hasher.update(buf)
+        if noHeader:
+            f.readline()# discard header
+        while True:
+            buf = f.read(MAX_CHAR)
+            if not buf:
+                break
+            if stripinSpace:
+                buf = stripBytes(buf)
+            hasher.update(buf)
+
+    return hasher.hexdigest()
+
+def stripBytes(byte):
+    _str = str(byte, 'utf-8')# convert byte to string for striping               
+    _strStriped = re.sub( r'\s+', '',  _str)
+    return _strStriped.encode('utf-8')# encode back to byte
+
+def hashStripedBytes(byte):
+    hasher = hashlib.md5()
+    buf = stripBytes(byte)
+    hasher.update(buf)
+
+    return hasher.hexdigest()
+
+def hashStripedString(string):
+    hasher = hashlib.md5()
+    _strStriped = re.sub( r'\s+', '',  string)
+    buf = stripBytes(_strStriped.encode('utf-8'))
+    hasher.update(buf)
+
     return hasher.hexdigest()
 
 class Zfile(object):
@@ -84,7 +111,11 @@ class Zfile(object):
 def zOpen(filePath, mode='r'):
     m = mode
     mz = 'rt' if mode == 'r' else 'rb'
-    try: 
+    if filePath.endswith(".gz"):
+        fp = gzip.open(filePath, mz)
+        return fp
+
+    try:         
         fp = open(filePath, m)
         return fp
     except (OSError, IOError) as e:
@@ -94,3 +125,43 @@ def zOpen(filePath, mode='r'):
 
 def zExists(filePath):
     return os.path.isfile(filePath) or os.path.isfile(filePath + '.gz')
+
+
+def which(program):
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
+
+def fileToGunzip(flatFile):
+    targetFile = f"{flatFile}.gz"
+    with open(flatFile, 'rb') as f_in, gzip.open(targetFile, 'wb') as f_out:
+        shutil.copyfileobj(f_in, f_out)
+    return targetFile
+
+def gunzipToFile(gzipedFile):
+    targetFile = gzipedFile.replace('.gz', '')
+    with gzip.open(gzipedFile, 'rb') as f:
+        file_content = f.read()
+        with open(targetFile, 'wb') as fp:
+            fp.write(file_content)
+    return targetFile
+
+# yield (full_header, sequence, header_id)
+def zFastaReader(filePath):
+     with Zfile(filePath) as handle:
+        for genome_seqrecord in SeqIO.parse(handle, "fasta"):
+            genome_seq = genome_seqrecord.seq
+            ref = genome_seqrecord.id
+            header = genome_seqrecord.description
+            yield(str(header), str(genome_seq), str(ref))

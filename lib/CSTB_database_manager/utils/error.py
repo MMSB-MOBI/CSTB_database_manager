@@ -17,3 +17,7 @@ class NoGenomeEntity(Exception):
 class MangoQueryError(Exception):
     """Raised when an error occurs while execute mango query"""
     pass
+
+class BlastConnectionError(Exception):
+    """Raised when provided fasta file or blast database folder don't exist"""
+    pass

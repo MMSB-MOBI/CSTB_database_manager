@@ -1,11 +1,11 @@
 from typeguard import typechecked
 from typing import TypedDict, Optional, Dict
-import CSTB_database_manager.db.virtual
+import CSTB_database_manager.db.couch.virtual
 
 #TreeDoc = TypedDict("TreeDoc", {"_id": str, "_rev": str, "date" : str, "tree": Dict}, total=False)
 
 @typechecked
-class TreeDB(CSTB_database_manager.db.virtual.Database):
+class TreeDB(CSTB_database_manager.db.couch.virtual.Database):
     def __init__(self, wrapper, db_name):
         super().__init__(wrapper, db_name)
 
@@ -23,7 +23,7 @@ class TreeDB(CSTB_database_manager.db.virtual.Database):
         return None
 
 @typechecked
-class TreeEntity(CSTB_database_manager.db.virtual.Entity):
+class TreeEntity(CSTB_database_manager.db.couch.virtual.Entity):
     def __init__(self, container : 'TreeDB', couchDoc):
         super().__init__(container, couchDoc)
         self.tree = couchDoc["tree"]
