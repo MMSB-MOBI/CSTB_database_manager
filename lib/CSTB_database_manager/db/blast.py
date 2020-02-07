@@ -17,7 +17,7 @@ def connect(blastFolder):
     if not which("formatdb"):
         raise error.BlastConnectionError("Executable formatdb is missing")
     if not os.path.isdir(blastFolder):
-        raise error.BlastConnectionError()
+        raise error.BlastConnectionError("Blast directory doesn't exist.")
     return BlastDB(blastFolder)
 
 class BlastDB ():
