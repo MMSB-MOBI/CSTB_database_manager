@@ -130,13 +130,12 @@ class BlastDB ():
             else:
                 _root[file_extension] = f"{filename}.{file_extension}"
 
-        #What is this for ? 
-        '''for k in ['pin', 'psq', 'psi', 'psd', 'phr']:
+        for k in ['nhr', 'nin', 'nsq']:
             filesRegistry[k] = sorted(filesRegistry[k]) 
 
-        for k in ['psq', 'psi', 'psd', 'phr']:
-            if not filesRegistry['pin'] == filesRegistry[k]:
-                raise error.BlastConnectionError(f"Uneven sets of blast database file pin/{k}")'''
+        for k in ['nin', 'nsq']:
+            if not filesRegistry['nhr'] == filesRegistry[k]:
+                raise error.BlastConnectionError(f"Uneven sets of blast database file pin/{k}")
 
         return filesRegistry
 
