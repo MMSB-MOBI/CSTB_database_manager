@@ -1,8 +1,7 @@
 """Add genomes to taxon and genome databases
 
 Usage:
-    add_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [--map <volume_mapper>] [--index <index_file_dump_loc>] [ --min <start_index> --max <stop_index> --cache <pickle_cache> ] [ --debug ] [ --size <batch_size> ]
-    add_genome.py --config <conf> --genomes <genome_list>  --location <fasta_folder> --blast [ --min <start_index> --max <stop_index> ]
+    add_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [--map <volume_mapper>] [--index <index_file_dump_loc>] [ --min <start_index> --max <stop_index> --cache <pickle_cache> ] [ --debug ] [ --size <batch_size> ] [ --tree ] [ --blast ]
 
 Options:
     -h --help
@@ -15,6 +14,7 @@ Options:
     --max <stop_index>  position to read to   (included) in the tsv file (header line does not count)
     --cache <pickle_cache>  define a folder to dump the sgnRNA locations of each provided genome
     --size <batch_size>  Maximal number of keys in a couchDB volume collection insert (default = 10000)
+    --tree  Create taxonomic tree after insertion
     --debug  Set debug mode ON
 
 """
@@ -66,6 +66,9 @@ if __name__ == "__main__":
 
     if ARGS["--blast"]: 
         db.addBlast(fastaFileList)
+
+    if ARGS["--tree"]:
+        db.createTree()
 
 """
 for i in `seq 0 255`
