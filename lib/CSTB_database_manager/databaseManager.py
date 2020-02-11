@@ -124,7 +124,12 @@ class DatabaseManager():
             return
         
         if not genome_entity:
-            size = self._get_fasta_size(fasta)
+            try:
+                size = self._get_fasta_size(fasta)
+            except error.FastaHeaderConflict as e:
+                print(f"Can't add your entry because FastaHeaderConflict\n{e}")
+                return
+                
             genome_entity = self.genomedb.createNewGenome(fasta_md5, size, gcf, acc)
 
         try:
@@ -190,6 +195,8 @@ class DatabaseManager():
             for l in f: 
                 if l.startswith('>'):
                     ref = l.split(" ")[0].lstrip(">")
+                    if ref in dic_size:
+                        raise error.FastaHeaderConflict(f"Two fasta header have same first identifiant : {ref}. Change fasta headers to insert this genome.")
                     dic_size[ref] = 0
                 else:
                     dic_size[ref] += len(l.rstrip())           

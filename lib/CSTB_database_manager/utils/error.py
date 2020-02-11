@@ -21,3 +21,7 @@ class MangoQueryError(Exception):
 class BlastConnectionError(Exception):
     """Raised when provided fasta file or blast database folder don't exist"""
     pass
+
+class FastaHeaderConflict(Exception):
+    """Raised when 2 fasta header have same first word"""
+    pass
