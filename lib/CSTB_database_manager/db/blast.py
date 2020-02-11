@@ -14,8 +14,8 @@ MAX_COUNT=25
 
 # check formatdb availability
 def connect(blastFolder):
-    if not which("formatdb"):
-        raise error.BlastConnectionError("Executable formatdb is missing")
+    if not which("makeblastdb"):
+        raise error.BlastConnectionError("Executable makeblastdb is missing")
     if not os.path.isdir(blastFolder):
         raise error.BlastConnectionError("Blast directory doesn't exist.")
     return BlastDB(blastFolder)
@@ -94,12 +94,9 @@ class BlastDB ():
     def _setRegistry(self):
         filesRegistry = {
                     'pkl' : None,
-                    'pal' : None,
-                    'pin' : [],
-                    'psq' : [],
-                    'psi' : [],
-                    'psd' : [],
-                    'phr' : [],
+                    'nhr' : [],
+                    'nin' : [],
+                    'nsq' : [],
                     'build' : { 
                         'err' : None,
                         'log' : None
@@ -123,7 +120,6 @@ class BlastDB ():
             elif not re.match(_reRegularFile, filename):
                 raise error.BlastConnectionError(f"Irregular extension found in blast database {file} re/{_reRegularFile}/")
             
-    
             if not file_extension in _root:
                 raise error.BlastConnectionError(f"Unregistred extension for file {filename} =>{file_extension}")
 
@@ -134,12 +130,14 @@ class BlastDB ():
             else:
                 _root[file_extension] = f"{filename}.{file_extension}"
 
-        for k in ['pin', 'psq', 'psi', 'psd', 'phr']:
+        #What is this for ? 
+        '''for k in ['pin', 'psq', 'psi', 'psd', 'phr']:
             filesRegistry[k] = sorted(filesRegistry[k]) 
 
         for k in ['psq', 'psi', 'psd', 'phr']:
             if not filesRegistry['pin'] == filesRegistry[k]:
-                raise error.BlastConnectionError(f"Uneven sets of blast database file pin/{k}")
+                raise error.BlastConnectionError(f"Uneven sets of blast database file pin/{k}")'''
+
         return filesRegistry
 
     def _restoreIndex(self, filePickle):
@@ -211,7 +209,7 @@ class BlastDB ():
     
     def _formatdb(self):
         stdRootPath = f"{self.location}/{self.tag}_build"
-        args = ['formatdb', '-t', self.tag, '-i', self.fastaBufferFile, '-l', f"{stdRootPath}.log", '-o', 'T', '-n', self.tag]
+        args = ['makeblastdb', '-in', self.fastaBufferFile, '-dbtype', 'nucl', '-out', f"{self.location}/{self.tag}"]
         #formatdb -t $DATABASE_TAG -i $MFASTA -l ${DATABASE_TAG}_build.log -o T -n $DATABASE_TAG
         with open(f"{stdRootPath}.log", 'a') as stdout:
             with open(f"{stdRootPath}.err", 'a') as stderr:
