@@ -21,11 +21,11 @@ def connect(blastFolder):
     return BlastDB(blastFolder)
 
 class BlastDB ():
-    def __init__(self, blastFolder):
+    def __init__(self, blastFolder, compressed=False):
+        self.fastaAsArchive = compressed # By Default we will reject fasta under gz b/c I/O too slow        
         self.location = blastFolder
         self.registry = self._parsingDatabase()
         self._buffer = []
-    
         if self.empty:
             print(f"Database {self.tag} seems empty")
             self.data = {}
@@ -77,11 +77,14 @@ class BlastDB ():
         return re.match(f"{self.tag}(\.[\d]+)")
 
     def _getFasta(self):
-        fastaFile = [ f for f in glob.glob(f"{self.location}/*.mfasta.gz") ]
+        fastaName = f"{self.location}/*.mfasta"
+        if self.fastaAsArchive:
+            fastaName += ".gz"
+        fastaFile = [ f for f in glob.glob(fastaName) ]
         if len(fastaFile) > 1:
             msg = (
                 f"Unexpected  number of "
-                f"number or *.fasta.gz file "
+                f"number or ${fastaName} file "
                 f"({len(fastaFile)}) found in blastFolder"
             )
             raise error.BlastConnectionError(msg)
@@ -104,11 +107,11 @@ class BlastDB ():
                 }
 
         tag = self.tag
-        _reRegularFile =  f"{tag}(\.[\d]+)" + "{0,1}"
+        _reRegularFile =  f"{tag}(\.[\d]+){{0,1}}"
         _reLogFile = f"{tag}_build"
         
         for file in glob.glob(f"{self.location}/*.*"):
-            if file.endswith(f"/{tag}.mfasta.gz"):
+            if re.search(rf'/{tag}.mfasta(.gz){{0,1}}$', file):
                 continue
             filename, file_extension = os.path.splitext(file)
             filename                 = os.path.basename(filename)
@@ -121,8 +124,9 @@ class BlastDB ():
                 raise error.BlastConnectionError(f"Irregular extension found in blast database {file} re/{_reRegularFile}/")
             
             if not file_extension in _root:
-                raise error.BlastConnectionError(f"Unregistred extension for file {filename} =>{file_extension}")
-
+                #raise error.BlastConnectionError(f"Unregistred extension for file {filename} =>{file_extension}")
+                print(f'Warning: Unregistred extension for file {filename} =>{file_extension}')
+                continue
             if not type(_root[file_extension]) is list and not _root[file_extension] is None: 
                 raise error.BlastConnectionError(f"Previous instance of {file_extension} registred" )
             elif type(_root[file_extension]) is list:       
@@ -189,10 +193,17 @@ class BlastDB ():
     def flush(self):
         print("flushing")
         self.fastaBufferFile = None
+        # No previsous fasta record
         if not self.fastaFile:           
             self.fastaBufferFile = f"{self.location}/{self.tag}.mfasta"
-        else:
+            self.fastaFile =  self.fastaBufferFile
+        # Previous record is ziped
+        elif self.fastaAsArchive :
             self.fastaBufferFile = gunzip(self.fastaFile)
+        # Previous record is flat
+        else :
+            self.fastaBufferFile = self.fastaFile
+        
         
         with open (self.fastaBufferFile, 'a') as fp:
             for t in self._buffer:
@@ -200,11 +211,14 @@ class BlastDB ():
                 fp.write(t[1] + '\n')
 
     def clean(self):
-        print(f"Cleaning")                
-        print(f"Zipping main fasta record")
-        self.fastaFile = gzip(self.fastaBufferFile)
+        print(f"Computing checksum of {self.fastaFile}")
         self.checksum  = os.path.getsize(self.fastaFile)
-        os.remove(self.fastaBufferFile)
+        print(f"Cleaning")                
+        if self.fastaAsArchive:
+            print(f"Zipping main fasta record")
+            self.fastaFile = gzip(self.fastaBufferFile)
+            print(f"Deleting main fasta record {self.fastaBufferFile}")
+            os.remove(self.fastaBufferFile)
     
     def _formatdb(self):
         stdRootPath = f"{self.location}/{self.tag}_build"

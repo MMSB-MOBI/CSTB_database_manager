@@ -50,8 +50,9 @@ if __name__ == "__main__":
         
         #print(zHash(fastaFileList[-1]))
         #exit(1)
+        print(">", fastaFileList)
         if not zExists(fastaFileList[-1]):
-            raise ValueError(f"No fasta file at {fastaFileList[-1]}")
+            raise ValueError(f'No fasta file at {fastaFileList[-1]}')
         
         print(f"db.AddGenome({fastaFileList[-1]}, {name}, {taxid}, {gcf}, {acc})")           
         db.addGenome(fastaFileList[-1], name, taxid, gcf, acc)
