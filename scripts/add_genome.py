@@ -22,7 +22,7 @@ Options:
 import sys, os
 import CSTB_database_manager.databaseManager as dbManager
 from docopt import docopt
-from CSTB_database_manager.utils.io import tsvReader, zExists
+from CSTB_core.utils.io import tsvReader, zExists
 
 #from CSTB_database_manager.utils.io import fileHash as zHash
 

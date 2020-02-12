@@ -1,12 +1,12 @@
 import CSTB_database_manager.utils.error as error
-from CSTB_database_manager.utils.io import Zfile as zFile
+from CSTB_core.utils.io import Zfile as zFile
 
-from CSTB_database_manager.utils.io import hashStripedString as hashSequence
-from CSTB_database_manager.utils.io import fileHash
+from CSTB_core.utils.io import hashStripedString as hashSequence
+from CSTB_core.utils.io import fileHash
 import os, glob, re, pickle
-from CSTB_database_manager.utils.io import which
-from CSTB_database_manager.utils.io import gunzipToFile as gunzip
-from CSTB_database_manager.utils.io import fileToGunzip as gzip
+from CSTB_core.utils.io import which
+from CSTB_core.utils.io import gunzipToFile as gunzip
+from CSTB_core.utils.io import fileToGunzip as gzip
 
 from subprocess import check_call
 

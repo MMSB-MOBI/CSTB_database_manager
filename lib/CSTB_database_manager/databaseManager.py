@@ -5,20 +5,20 @@ from typeguard import typechecked
 
 import pycouch.wrapper as wrapper
 
-from CSTB_database_manager.engine.word_detect import sgRNAfastaSearch
-from CSTB_database_manager.engine.wordIntegerIndexing import indexAndOccurence as computeMotifsIndex
+from CSTB_core.engine.word_detect import sgRNAfastaSearch
+from CSTB_core.engine.wordIntegerIndexing import indexAndOccurence as computeMotifsIndex
 import CSTB_database_manager.db.couch.taxon as taxonDBHandler
 import CSTB_database_manager.db.couch.genome as genomeDBHandler
 import CSTB_database_manager.db.blast as blastDBHandler
 
 import CSTB_database_manager.utils.error as error
-from CSTB_database_manager.utils.io import fileHash as fastaHash
-from CSTB_database_manager.utils.io import Zfile as zFile
+from CSTB_core.utils.io import fileHash as fastaHash
+from CSTB_core.utils.io import Zfile as zFile
 from  CSTB_database_manager.db.couch.genome import GenomeEntity as tGenomeEntity
 # GL for sbatch, temporary hack
 import CSTB_database_manager.db.couch.tree as treeDBHandler
 import CSTB_database_manager.engine.taxonomic_tree as tTree
-from CSTB_database_manager.utils.io import zFastaReader
+from CSTB_core.utils.io import zFastaReader
 import logging
 logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(message)s')
 
