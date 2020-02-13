@@ -126,3 +126,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+config_cecile.json
+config.json
+config_test.json

@@ -9,6 +9,7 @@ from CSTB_core.utils.io import gunzipToFile as gunzip
 from CSTB_core.utils.io import fileToGunzip as gzip
 
 from subprocess import check_call
+import logging
 
 MAX_COUNT=25
 
@@ -27,12 +28,12 @@ class BlastDB ():
         self.registry = self._parsingDatabase()
         self._buffer = []
         if self.empty:
-            print(f"Database {self.tag} seems empty")
+            logging.warn(f"Database {self.tag} seems empty")
             self.data = {}
             self.checksum = None
             return
 
-        print(f"blastdb::_parsingDatabase:Computing checksum for {self.fastaFile}...")
+        logging.info(f"blastdb::_parsingDatabase:Computing checksum for {self.fastaFile}...")
         # HACK TO speed DVL
         #self.checksum = fileHash(self.fastaFile, noHeader=False, stripinSpace=False)
         self.checksum = os.path.getsize(self.fastaFile)
@@ -59,7 +60,6 @@ class BlastDB ():
             'checksum' : self.checksum,
             'data' : self.data
         }
-        print("DONE")
         pickle.dump( _, open( fDump, "wb" ) )
         return fDump
     # Enforcing naming convention
@@ -125,7 +125,7 @@ class BlastDB ():
             
             if not file_extension in _root:
                 #raise error.BlastConnectionError(f"Unregistred extension for file {filename} =>{file_extension}")
-                print(f'Warning: Unregistred extension for file {filename} =>{file_extension}')
+                logging.warn(f'Warning: Unregistred extension for file {filename} =>{file_extension}')
                 continue
             if not type(_root[file_extension]) is list and not _root[file_extension] is None: 
                 raise error.BlastConnectionError(f"Previous instance of {file_extension} registred" )
@@ -144,7 +144,7 @@ class BlastDB ():
         return filesRegistry
 
     def _restoreIndex(self, filePickle):
-        print(f"Restoring index from {filePickle}")
+        logging.info(f"Restoring index from {filePickle}")
         with open(filePickle, 'rb') as fp:
             _ = pickle.load(fp)
             checksum = _.get('checksum', None)
@@ -158,7 +158,7 @@ class BlastDB ():
         if self.registry['pkl']:
             return self._restoreIndex(f"{self.location}/{self.registry['pkl']}")
             
-        print(f"Building index on {self.fastaFile}, "
+        logging.info(f"Building index on {self.fastaFile}, "
               f" this may take a while...")
         data = {}
         with zFile(self.fastaFile) as handle:
@@ -168,7 +168,7 @@ class BlastDB ():
                 _id = hashSequence(str(genome_seq))
                 data[_id] = header
         
-        print(f"{len(data.keys())} fasta records successfully indexed")
+        logging.info(f"{len(data.keys())} fasta records successfully indexed")
         return data
 
     def __iter__(self):
@@ -186,12 +186,12 @@ class BlastDB ():
     def add(self, header, sequence, force=False):
         key = hashSequence(sequence)
         if key in self.data:
-            print(f"blast::add:Bouncing {header}, sequence already stored")
+            logging.info(f"blast::add:Bouncing {header}, sequence already stored")
             return
         self._buffer.append( (header, sequence, key) )
     
     def flush(self):
-        print("flushing")
+        logging.info("flushing")
         self.fastaBufferFile = None
         # No previsous fasta record
         if not self.fastaFile:           
@@ -211,13 +211,13 @@ class BlastDB ():
                 fp.write(t[1] + '\n')
 
     def clean(self):
-        print(f"Computing checksum of {self.fastaFile}")
+        logging.info(f"Computing checksum of {self.fastaFile}")
         self.checksum  = os.path.getsize(self.fastaFile)
-        print(f"Cleaning")                
+        logging.info(f"Cleaning")                
         if self.fastaAsArchive:
-            print(f"Zipping main fasta record")
+            logging.info(f"Zipping main fasta record")
             self.fastaFile = gzip(self.fastaBufferFile)
-            print(f"Deleting main fasta record {self.fastaBufferFile}")
+            logging.info(f"Deleting main fasta record {self.fastaBufferFile}")
             os.remove(self.fastaBufferFile)
     
     def _formatdb(self):
@@ -226,7 +226,7 @@ class BlastDB ():
         #formatdb -t $DATABASE_TAG -i $MFASTA -l ${DATABASE_TAG}_build.log -o T -n $DATABASE_TAG
         with open(f"{stdRootPath}.log", 'a') as stdout:
             with open(f"{stdRootPath}.err", 'a') as stderr:
-                print(f"Running {args}")
+                logging.info(f"Running {args}")
                 check_call(args, stdout=stdout, stderr=stderr, cwd=self.location)
     
     def updateIndex(self):
@@ -234,14 +234,14 @@ class BlastDB ():
             self.data[hKey] = header
 
     def close(self):
-        print("closing")
+        logging.info("closing")
         if not self._buffer :
             return
         self.flush()
         self._formatdb()
         self.clean()
         self.updateIndex()
-        print(f"blastDB::close: inserting {len(self._buffer)} fasta records before closing")
+        logging.info(f"blastDB::close: inserting {len(self._buffer)} fasta records before closing")
         fName = self._indexDump() 
-        print(f"Index wrote to {fName}")
+        logging.info(f"Index wrote to {fName}")
         

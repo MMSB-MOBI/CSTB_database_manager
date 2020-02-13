@@ -15,6 +15,8 @@ class PositivePutAnswer(TypedDict):
 
 @typechecked
 class TaxonDB(CSTB_database_manager.db.couch.virtual.Database):
+    """Handle taxon database
+    """
     def __init__(self, wrapper, db_name):
         super().__init__(wrapper, db_name)
 
@@ -81,8 +83,8 @@ class TaxonDB(CSTB_database_manager.db.couch.virtual.Database):
 
 @typechecked
 class TaxonEntity(CSTB_database_manager.db.couch.virtual.Entity):
+    """Represent an entry in taxon database"""
     def __init__(self, container : 'TaxonDB', couchDoc: TaxonDoc):
-        """Represent an entry in taxon database"""
         super().__init__(container, couchDoc)
         self.name = couchDoc["name"]
         self.taxid = couchDoc["taxid"]

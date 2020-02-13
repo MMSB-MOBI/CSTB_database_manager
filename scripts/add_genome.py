@@ -20,6 +20,8 @@ Options:
 """
 
 import sys, os
+import logging
+logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(filename)s:%(lineno)s\t%(message)s', stream=sys.stdout)
 import CSTB_database_manager.databaseManager as dbManager
 from docopt import docopt
 from CSTB_core.utils.io import tsvReader, zExists
@@ -50,11 +52,11 @@ if __name__ == "__main__":
         
         #print(zHash(fastaFileList[-1]))
         #exit(1)
-        print(">", fastaFileList)
+        logging.info(f"> {fastaFileList}")
         if not zExists(fastaFileList[-1]):
             raise ValueError(f'No fasta file at {fastaFileList[-1]}')
         
-        print(f"db.AddGenome({fastaFileList[-1]}, {name}, {taxid}, {gcf}, {acc})")           
+        logging.info(f"db.AddGenome({fastaFileList[-1]}, {name}, {taxid}, {gcf}, {acc})")           
         db.addGenome(fastaFileList[-1], name, taxid, gcf, acc)
 
 
@@ -62,7 +64,7 @@ if __name__ == "__main__":
         db.setMotifAgent(ARGS["--map"])
     
     if ARGS["--map"] or ARGS["--index"]:
-        print(f"Proceeding to the db.AddMotifs of {len(fastaFileList)} fasta")  
+        logging.info(f"Proceeding to the db.AddMotifs of {len(fastaFileList)} fasta")  
         db.addFastaMotifs(fastaFileList, bSize , indexLocation, cacheLocation)
 
     if ARGS["--blast"]: 

@@ -20,7 +20,6 @@ import CSTB_database_manager.db.couch.tree as treeDBHandler
 import CSTB_database_manager.engine.taxonomic_tree as tTree
 from CSTB_core.utils.io import zFastaReader
 import logging
-logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(message)s')
 
 class ConfigType(TypedDict):
     url: str
@@ -48,7 +47,7 @@ class DatabaseManager():
         self.treedb = self._init(config["treedb_name"], treeDBHandler.TreeDB)
 
         if not "blastdb_path" in config:
-            print(f"DatabaseManager:init:Warning no blast database specified")
+            logging.info(f"DatabaseManager:init:Warning no blast database specified")
             self.blastdb = None
         else:
             self.blastdb = blastDBHandler.connect(config["blastdb_path"])
@@ -67,7 +66,7 @@ class DatabaseManager():
 
     def _init(self, database_name, database_obj):
         if not self.wrapper.couchTargetExist(database_name):
-            print(f"INFO: Create {database_name}")
+            logging.info(f"Create {database_name}")
             self.wrapper.couchCreateDB(database_name)
         return database_obj(self.wrapper, database_name)
 
@@ -77,7 +76,7 @@ class DatabaseManager():
     def setMotifAgent(self, mappingRuleFile):
         with open(mappingRuleFile, 'rb') as fp:
             self.wrapper.setKeyMappingRules(json.load(fp))
-        print(f"Loaded {len(self.wrapper.queue_mapper)} volumes mapping rules" )
+        logging.info(f"Loaded {len(self.wrapper.queue_mapper)} volumes mapping rules" )
     
     def getGenomeEntity(self, fastaMd5):#:str):
         return self.genomedb.get(fastaMd5)
@@ -90,9 +89,10 @@ class DatabaseManager():
                 _header = f">{genomElem._id}|{header.replace(r'/^>//', '')}"
                 self.blastdb.add(_header, seq)
         self.blastdb.close()
+        
     def addGenome(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None):
         """
-        Take informations about genome and corresponding taxon and insert them in databases with correct links.
+        Take informations about genome and corresponding taxon and insert them in databases.
 
         :param fasta: Path to fasta file
         :param name: Taxon name
@@ -106,28 +106,28 @@ class DatabaseManager():
         :type gcf: str
         :type acc: str
         """
-        print(f"INFO : Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf: {gcf}\nacc: {acc}")
+        logging.info(f"Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf: {gcf}\nacc: {acc}")
 
         try :
             fasta_md5 = fastaHash(fasta)
         except FileNotFoundError:
-            print(f"Can't add your entry because fasta file is not found.")
+            logging.error(f"Can't add your entry because fasta file is not found.")
             return       
 
         try:
             genome_entity = self.genomedb.get(fasta_md5, gcf, acc)
         except error.DuplicateError as e: 
-            print(f"Can't add your entry because DuplicateError in genome database \nReason : \n{e}")
+            logging.error(f"Can't add your entry because DuplicateError in genome database \nReason : \n{e}")
             return
         except error.ConsistencyError as e: 
-            print(f"Can't add your entry because ConsistencyError in genome database \nReason : \n{e}")
+            logging.error(f"Can't add your entry because ConsistencyError in genome database \nReason : \n{e}")
             return
         
         if not genome_entity:
             try:
                 size = self._get_fasta_size(fasta)
             except error.FastaHeaderConflict as e:
-                print(f"Can't add your entry because FastaHeaderConflict\n{e}")
+                logging.error(f"Can't add your entry because FastaHeaderConflict\n{e}")
                 return
                 
             genome_entity = self.genomedb.createNewGenome(fasta_md5, size, gcf, acc)
@@ -135,10 +135,10 @@ class DatabaseManager():
         try:
             taxon_entity = self.taxondb.get(name, taxid)
         except error.DuplicateError as e:
-            print(f"Can't add your entry because DuplicateError in taxon database \nReason : \n{e}")
+            logging.error(f"Can't add your entry because DuplicateError in taxon database \nReason : \n{e}")
             return
         except error.ConsistencyError as e:
-            print(f"Can't add your entry because ConsistencyError in taxon database \nReason : \n{e}")
+            logging.error(f"Can't add your entry because ConsistencyError in taxon database \nReason : \n{e}")
             return
         
         if not taxon_entity:
@@ -148,22 +148,31 @@ class DatabaseManager():
             self.bind(genome_entity, taxon_entity)
 
         except error.LinkError as e:
-            print(f"Can't add your entry because LinkError\nReason : \n{e}")
+            logging.error(f"Can't add your entry because LinkError\nReason : \n{e}")
             return
         
         except error.VersionError as e:
-            print(f"Can't add your entry because VersionError\nReason : \n{e}")
+            logging.error(f"Can't add your entry because VersionError\nReason : \n{e}")
             return
 
         genome_entity.store()
         taxon_entity.store()
         
     def bind(self, genome, taxon):
+        """Make the link between genome and taxon. Add genome uuid in taxon entry and taxon uuid in genome entry with consistency checks.
+        
+        :param genome: GenomeEntity that represents a genome couch entry
+        :type genome: CSTB_database_manager.genome.GenomeEntity
+        :param taxon: TaxonEntity that represents a taxon couch entry
+        :type taxon: CSTB_database_manager.genome.TaxonEntity
+        :raises error.VersionError: Raise if genome already exists as an older version of taxon. 
+        :raises error.LinkError: Raise if links already exists and don't correspond.
+        """
         if genome.isInDB():
             if taxon.isInDB():
                 if genome.taxon == taxon._id:
                     if taxon.current == genome._id:
-                        print("Genome already exists as current version")
+                        logging.warn("Genome already exists as current version")
                     else:
                         if genome._id in taxon.genomeColl:
                             raise error.VersionError(f'This genome exists as an older version of Taxon (name : {taxon.name}, taxid : {taxon.taxid})')
@@ -178,18 +187,26 @@ class DatabaseManager():
                 raise error.LinkError(f'Genome already exists but associated with an other Taxon (name : {current_taxon.name}, taxid : {current_taxon.taxid}). Update this taxon or delete genome if you really want to add it.')
         else:
             if taxon.isInDB():
-                print(f'New genome version for Taxon (name: {taxon.name}, taxid {taxon.taxid}')
+                logging.info(f'New genome version for Taxon (name: {taxon.name}, taxid {taxon.taxid}')
                 genome.taxon = taxon._id
                 taxon.current = genome._id
                 taxon.genomeColl.append(genome._id)
 
             else:
-                print("Genome and taxon are new")
+                logging.info("Genome and taxon are new")
                 genome.taxon = taxon._id
                 taxon.current = genome._id
                 taxon.genomeColl = [genome._id]
     
     def _get_fasta_size(self, fasta: str) -> Dict:
+        """Get fasta sequences sizes
+        
+        :param fasta: Path to fasta file
+        :type fasta: str
+        :raises error.FastaHeaderConflict: Raises if two fasta header are in conflict. 
+        :return: Dictionnary with size for each fasta header
+        :rtype: Dict -> {fasta_header(str) : size(int)}
+        """
         dic_size = {}
         with zFile(fasta) as f: 
             for l in f: 
@@ -210,35 +227,36 @@ class DatabaseManager():
         fasta_md5 = hasher.hexdigest()
         return fasta_md5
 
+    ## NEED DEVELOPMENT    
     def removeGenome(self, fasta: str, gcf: str = None, acc:str = None): 
-        print("INFO : Remove genome")
+        logging.info("Remove genome")
         try:
             md5 = self._get_md5(fasta)
         except FileNotFoundError:
-            print("Can't remove your entry because fasta file is not found")
+            logging.error("Can't remove your entry because fasta file is not found")
             return
         try: 
             genome = self.genomedb.get(md5)
         except error.DuplicateError as e:
-            print(f"Can't remove your entry because of DuplicateError\nreason: {e}")
+            logging.error(f"Can't remove your entry because of DuplicateError\nreason: {e}")
             return
         except error.ConsistencyError as e :
-            print(f"Can't remove your entry because of ConsistencyError\nreason: {e}")
+            logging.error(f"Can't remove your entry because of ConsistencyError\nreason: {e}")
             return
         except wrapper.CouchWrapperError as e:
-            print(f"Can't remove your entry because of CouchWrapperError\nreason: {e}")
+            logging.error(f"Can't remove your entry because of CouchWrapperError\nreason: {e}")
             return
         if not genome:
-            print(f"Genome doesn't exist in genome database")
+            logging.error(f"Genome doesn't exist in genome database")
             return
 
-        print(f"Genome : {genome._id}")
-        print(f"Corresponding taxon is {genome.taxon}")
+        logging.info(f"Genome : {genome._id}")
+        logging.info(f"Corresponding taxon is {genome.taxon}")
 
         try: 
             taxon = self.taxondb.getFromID(genome.taxon)
         except wrapper.CouchWrapperError as e : 
-            print(f"Can't remove your entry because of CouchWrapperError\nreason: {e}")
+            logging.info(f"Can't remove your entry because of CouchWrapperError\nreason: {e}")
             return
 
         if not taxon: 
@@ -250,19 +268,18 @@ class DatabaseManager():
         taxon.genomeColl.remove(genome._id)
 
         if not taxon.genomeColl:
-            print(f"Your genome was the only version of the taxon (name : {taxon.name}, taxid : {taxon.taxid}). Taxon will be deleted.")
+            logging.info(f"Your genome was the only version of the taxon (name : {taxon.name}, taxid : {taxon.taxid}). Taxon will be deleted.")
             genome.remove()
             taxon.remove()
 
         else: 
-            print(f"Delete this version of Taxon (name : {taxon.name}, taxid : {taxon.taxid}). Current version become the previous one.")
+            logging.info(f"Delete this version of Taxon (name : {taxon.name}, taxid : {taxon.taxid}). Current version become the previous one.")
             taxon.current = taxon.genomeColl[-1]
             genome.remove()
             taxon.store()
 
     def createTree(self):
-        """
-        Create taxonomic tree from taxon database. Will automatically search taxon, create tree and store tree into database.
+        """Create taxonomic tree from taxon database. Will automatically search taxon, create tree and store tree into database.
         Use engine.taxonomic_tree to create and format tree. 
         """
         # Find all taxids
@@ -306,7 +323,7 @@ class DatabaseManager():
 
 
         if not dic_taxid and not dic_others:
-            print(f"No taxid found in {self.taxondb.db_name}")
+            logging.error(f"No taxid found in {self.taxondb.db_name}")
             return
 
         # Create tree
@@ -316,8 +333,6 @@ class DatabaseManager():
         tree_entity = self.treedb.createNewTree(tree_json)
         tree_entity.store()
         
-        
-        
  
     def addFastaMotifs(self, fastaFileList, batchSize=10000, indexLocation=None, cacheLocation=None):
         for fastaFile in fastaFileList:
@@ -325,11 +340,11 @@ class DatabaseManager():
             if cacheLocation and not ans is None:
                 fPickle = cacheLocation + "/" + uuid + ".p"
                 pickle.dump(sgRNA_data, open(fPickle, "wb"), protocol=3)
-                print(f"databaseManager::addFastaMotif:pickling of \"{len(sgRNA_data.keys())}\" sgnRNA motifs wrote to {fPickle}")
+                logging.info(f"databaseManager::addFastaMotif:pickling of \"{len(sgRNA_data.keys())}\" sgnRNA motifs wrote to {fPickle}")
        
             if indexLocation:
                 indexLen = self.addIndexMotif(indexLocation, sgRNA_data, uuid)
-                print(f"databaseManager::addFastaMotif:indexation of \"{indexLen}\" sgnRNA motifs wrote to {indexLocation}/{uuid}.index")
+                logging.info(f"databaseManager::addFastaMotif:indexation of \"{indexLen}\" sgnRNA motifs wrote to {indexLocation}/{uuid}.index")
        
     def addIndexMotif(self, location, sgnRNAdata, uuid):
         indexData = computeMotifsIndex(sgnRNAdata)
@@ -348,16 +363,16 @@ class DatabaseManager():
         sgRNA_data = sgRNAfastaSearch(fastaFile, uuid)
         allKeys = list(sgRNA_data.keys())
         if not self.wrapper.hasKeyMappingRules:
-            print(f"databaseManager::addFastaMotif:Without mapping rules, {len(allKeys)} computed sgRNA motifs will not be inserted into database")
+            logging.warn(f"databaseManager::addFastaMotif:Without mapping rules, {len(allKeys)} computed sgRNA motifs will not be inserted into database")
             return (sgRNA_data, uuid, None)
         
-        print(f"databaseManager::addFastaMotif:Slicing \"{uuid}\" to volDocAdd its {len(allKeys)} genomic sgRNA motif")       
+        logging.info(f"databaseManager::addFastaMotif:Slicing \"{uuid}\" to volDocAdd its {len(allKeys)} genomic sgRNA motif")       
         for i in range(0,len(allKeys), batchSize):
           
             j = i + batchSize if i + batchSize < len(allKeys) else len(allKeys)
             legit_keys = allKeys[i:j]
             d = { k : sgRNA_data[k] for k in legit_keys }
-            print(f"databaseManager::addFastaMotif:Attempting to volDocAdd {len(d.keys())} sets sgRNA keys")
+            logging.info(f"databaseManager::addFastaMotif:Attempting to volDocAdd {len(d.keys())} sets sgRNA keys")
        
             r = self.wrapper.volDocAdd(d)
         return (sgRNA_data, uuid, r)

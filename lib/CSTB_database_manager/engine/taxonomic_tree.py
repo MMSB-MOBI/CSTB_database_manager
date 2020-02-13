@@ -1,6 +1,7 @@
 from ete3 import Tree, NCBITaxa, TreeNode
 from typeguard import typechecked
 from os import path
+import logging
 
 @typechecked
 class HomemadeTree:
@@ -61,7 +62,7 @@ def create_tree(dic_taxid, dic_others):
     try:
         ncbi = load_ncbi()
     except Exception as e:
-        print(f"Error when load ete3 ncbi\n{e}")
+        logging.error(f"Error when load ete3 ncbi\n{e}")
     #Create first tree from taxids
     tree = ncbi.get_topology(list(dic_taxid.keys()))
     for node in tree.iter_descendants():
