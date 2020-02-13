@@ -8,11 +8,6 @@ TaxonDoc = TypedDict("TaxonDoc",
 {"_id": str, "_rev": str, "genomeColl": List[str], "name": str, "taxid": Optional[int], "current": str, "date": str}, 
 total=False)
 
-class PositivePutAnswer(TypedDict):
-    ok : bool
-    id: str
-    rev: str
-
 @typechecked
 class TaxonDB(CSTB_database_manager.db.couch.virtual.Database):
     """Handle taxon database
@@ -71,7 +66,7 @@ class TaxonDB(CSTB_database_manager.db.couch.virtual.Database):
         }
         return TaxonEntity(self, doc)
     
-    def add(self, doc: TaxonDoc) -> PositivePutAnswer:
+    def add(self, doc: TaxonDoc) -> CSTB_database_manager.db.couch.virtual.PositivePutAnswer:
         return self.wrapper.couchAddDoc(doc, target = self.db_name, key = doc["_id"])
 
     def getFromID(self, id: str) -> Optional['TaxonEntity']:

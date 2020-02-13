@@ -5,11 +5,6 @@ import CSTB_database_manager.utils.error as error
 
 GenomeDoc = TypedDict("GenomeDoc", {"_id": str, "_rev": Optional[str], "taxon": str, "fasta_md5": str, "gcf_assembly": Optional[str], "accession_number": Optional[str], "size": Dict, "date": str}, total=False)
 
-class PositivePutAnswer(TypedDict): #Probably not define this type here, it's in taxonDB too.
-    ok : bool
-    id: str
-    rev: str
-
 @typechecked
 class GenomeDB(CSTB_database_manager.db.couch.virtual.Database):
     """Handle genome database
@@ -88,11 +83,12 @@ class GenomeEntity(CSTB_database_manager.db.couch.virtual.Entity):
     :ivar gcf_assembly: gcf assembly accession
     :vartype gcf_assembly: str
     :ivar accession_number: accession number
-    :vartype accession_number:str
+    :vartype accession_number: str
     :ivar size: Sizes of fasta sequences
     :vartype size: Dict -> {fasta_header(str):size(int)}
-    :rtype: [type]
+    
     """
+
     def __init__(self, container: 'GenomeDB', couchDoc: 'GenomeDoc'):
         """init function
         
