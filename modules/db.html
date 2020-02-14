@@ -1,0 +1,485 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Databases &mdash; CSTB database manager 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="databaseManager" href="databaseManager.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> CSTB database manager
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Modules</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="databaseManager.html">databaseManager</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Databases</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#couch-databases">Couch databases</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-CSTB_database_manager.db.couch.taxon">Taxon database</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-CSTB_database_manager.db.couch.genome">Genome database</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-CSTB_database_manager.db.couch.virtual">Parent class</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-CSTB_database_manager.db.blast">Blast database</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CSTB database manager</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Modules</a> &raquo;</li>
+        
+      <li>Databases</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/modules/db.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="databases">
+<h1>Databases<a class="headerlink" href="#databases" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="couch-databases">
+<h2>Couch databases<a class="headerlink" href="#couch-databases" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-CSTB_database_manager.db.couch.taxon">
+<span id="taxon-database"></span><h3>Taxon database<a class="headerlink" href="#module-CSTB_database_manager.db.couch.taxon" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="CSTB_database_manager.db.couch.taxon.TaxonDoc">
+<em class="property">class </em><code class="sig-prename descclassname">CSTB_database_manager.db.couch.taxon.</code><code class="sig-name descname">TaxonDoc</code><a class="headerlink" href="#CSTB_database_manager.db.couch.taxon.TaxonDoc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="CSTB_database_manager.db.couch.taxon.TaxonDB">
+<em class="property">class </em><code class="sig-prename descclassname">CSTB_database_manager.db.couch.taxon.</code><code class="sig-name descname">TaxonDB</code><span class="sig-paren">(</span><em class="sig-param">wrapper</em>, <em class="sig-param">db_name</em><span class="sig-paren">)</span><a class="headerlink" href="#CSTB_database_manager.db.couch.taxon.TaxonDB" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#CSTB_database_manager.db.couch.virtual.Database" title="CSTB_database_manager.db.couch.virtual.Database"><code class="xref py py-class docutils literal notranslate"><span class="pre">CSTB_database_manager.db.couch.virtual.Database</span></code></a></p>
+<p>Handle taxon database</p>
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.taxon.TaxonDB.add">
+<code class="sig-name descname">add</code><span class="sig-paren">(</span><em class="sig-param">doc: CSTB_database_manager.db.couch.taxon.TaxonDoc</em><span class="sig-paren">)</span> &#x2192; CSTB_database_manager.db.couch.virtual.PositivePutAnswer<a class="headerlink" href="#CSTB_database_manager.db.couch.taxon.TaxonDB.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a document to database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>doc</strong> (<em>Dict</em>) – json document to add</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>couch answer</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#CSTB_database_manager.db.couch.virtual.PositivePutAnswer" title="CSTB_database_manager.db.couch.virtual.PositivePutAnswer">PositivePutAnswer</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="CSTB_database_manager.db.couch.taxon.TaxonEntity">
+<em class="property">class </em><code class="sig-prename descclassname">CSTB_database_manager.db.couch.taxon.</code><code class="sig-name descname">TaxonEntity</code><span class="sig-paren">(</span><em class="sig-param">container: CSTB_database_manager.db.couch.taxon.TaxonDB</em>, <em class="sig-param">couchDoc: CSTB_database_manager.db.couch.taxon.TaxonDoc</em><span class="sig-paren">)</span><a class="headerlink" href="#CSTB_database_manager.db.couch.taxon.TaxonEntity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#CSTB_database_manager.db.couch.virtual.Entity" title="CSTB_database_manager.db.couch.virtual.Entity"><code class="xref py py-class docutils literal notranslate"><span class="pre">CSTB_database_manager.db.couch.virtual.Entity</span></code></a></p>
+<p>Represent an entry in taxon database</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-CSTB_database_manager.db.couch.genome">
+<span id="genome-database"></span><h3>Genome database<a class="headerlink" href="#module-CSTB_database_manager.db.couch.genome" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="CSTB_database_manager.db.couch.genome.GenomeDoc">
+<em class="property">class </em><code class="sig-prename descclassname">CSTB_database_manager.db.couch.genome.</code><code class="sig-name descname">GenomeDoc</code><a class="headerlink" href="#CSTB_database_manager.db.couch.genome.GenomeDoc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="CSTB_database_manager.db.couch.genome.GenomeDB">
+<em class="property">class </em><code class="sig-prename descclassname">CSTB_database_manager.db.couch.genome.</code><code class="sig-name descname">GenomeDB</code><span class="sig-paren">(</span><em class="sig-param">wrapper</em>, <em class="sig-param">db_name</em><span class="sig-paren">)</span><a class="headerlink" href="#CSTB_database_manager.db.couch.genome.GenomeDB" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#CSTB_database_manager.db.couch.virtual.Database" title="CSTB_database_manager.db.couch.virtual.Database"><code class="xref py py-class docutils literal notranslate"><span class="pre">CSTB_database_manager.db.couch.virtual.Database</span></code></a></p>
+<p>Handle genome database</p>
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.genome.GenomeDB.get">
+<code class="sig-name descname">get</code><span class="sig-paren">(</span><em class="sig-param">fasta_md5: str</em>, <em class="sig-param">gcf: str = None</em>, <em class="sig-param">acc: str = None</em><span class="sig-paren">)</span> &#x2192; Optional[CSTB_database_manager.db.couch.genome.GenomeEntity]<a class="headerlink" href="#CSTB_database_manager.db.couch.genome.GenomeDB.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get genome entity from couchdb from fasta_md5 and optional parameters gcf number and accession number and create Genome Entity</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>error.DuplicateError</strong> – Raises if fasta is duplicated in database</p></li>
+<li><p><strong>error.ConsistencyError</strong> – Raises if fasta exists in database but gcf or accession number don’t correspond.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Genome entity or None</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Optiona[<a class="reference internal" href="#CSTB_database_manager.db.couch.genome.GenomeEntity" title="CSTB_database_manager.db.couch.genome.GenomeEntity">GenomeEntity</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.genome.GenomeDB.createNewGenome">
+<code class="sig-name descname">createNewGenome</code><span class="sig-paren">(</span><em class="sig-param">fasta_md5: str</em>, <em class="sig-param">size: Dict</em>, <em class="sig-param">gcf: str = None</em>, <em class="sig-param">acc: str = None</em><span class="sig-paren">)</span> &#x2192; CSTB_database_manager.db.couch.genome.GenomeEntity<a class="headerlink" href="#CSTB_database_manager.db.couch.genome.GenomeDB.createNewGenome" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create genome entity</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Genome Entity</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#CSTB_database_manager.db.couch.genome.GenomeEntity" title="CSTB_database_manager.db.couch.genome.GenomeEntity">GenomeEntity</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.genome.GenomeDB.getFromID">
+<code class="sig-name descname">getFromID</code><span class="sig-paren">(</span><em class="sig-param">id: str</em><span class="sig-paren">)</span> &#x2192; Optional[CSTB_database_manager.db.couch.genome.GenomeEntity]<a class="headerlink" href="#CSTB_database_manager.db.couch.genome.GenomeDB.getFromID" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get genome couch document from couch _id and create GenomeEntity</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Genome Entity object or None</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Optional[<a class="reference internal" href="#CSTB_database_manager.db.couch.genome.GenomeEntity" title="CSTB_database_manager.db.couch.genome.GenomeEntity">GenomeEntity</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="CSTB_database_manager.db.couch.genome.GenomeEntity">
+<em class="property">class </em><code class="sig-prename descclassname">CSTB_database_manager.db.couch.genome.</code><code class="sig-name descname">GenomeEntity</code><span class="sig-paren">(</span><em class="sig-param">container: CSTB_database_manager.db.couch.genome.GenomeDB</em>, <em class="sig-param">couchDoc: CSTB_database_manager.db.couch.genome.GenomeDoc</em><span class="sig-paren">)</span><a class="headerlink" href="#CSTB_database_manager.db.couch.genome.GenomeEntity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#CSTB_database_manager.db.couch.virtual.Entity" title="CSTB_database_manager.db.couch.virtual.Entity"><code class="xref py py-class docutils literal notranslate"><span class="pre">CSTB_database_manager.db.couch.virtual.Entity</span></code></a></p>
+<p>Object that represents couch entry for a genome</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fasta_md5</strong> (<em>str</em>) – md5 for fasta sequence</p></li>
+<li><p><a class="reference internal" href="#module-CSTB_database_manager.db.couch.taxon" title="CSTB_database_manager.db.couch.taxon"><strong>taxon</strong></a> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – taxon uuid</p></li>
+<li><p><strong>gcf_assembly</strong> (<em>str</em>) – gcf assembly accession</p></li>
+<li><p><strong>accession_number</strong> (<em>str</em>) – accession number</p></li>
+<li><p><strong>size</strong> (<em>Dict -&gt; {fasta_header</em><em>(</em><em>str</em><em>)</em><em>:size</em><em>(</em><em>int</em><em>)</em><em>}</em>) – Sizes of fasta sequences</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-CSTB_database_manager.db.couch.virtual">
+<span id="parent-class"></span><h3>Parent class<a class="headerlink" href="#module-CSTB_database_manager.db.couch.virtual" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="CSTB_database_manager.db.couch.virtual.PositivePutAnswer">
+<em class="property">class </em><code class="sig-prename descclassname">CSTB_database_manager.db.couch.virtual.</code><code class="sig-name descname">PositivePutAnswer</code><a class="headerlink" href="#CSTB_database_manager.db.couch.virtual.PositivePutAnswer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="CSTB_database_manager.db.couch.virtual.Database">
+<em class="property">class </em><code class="sig-prename descclassname">CSTB_database_manager.db.couch.virtual.</code><code class="sig-name descname">Database</code><span class="sig-paren">(</span><em class="sig-param">wrapper</em>, <em class="sig-param">db_name</em><span class="sig-paren">)</span><a class="headerlink" href="#CSTB_database_manager.db.couch.virtual.Database" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Handle couch database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wrapper</strong> (<em>pycouch.wrapper.Wrapper</em>) – pycouch wrapper to interrogate couch database</p></li>
+<li><p><strong>db_name</strong> (<em>str</em>) – database name</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.virtual.Database.execute_mango_query">
+<code class="sig-name descname">execute_mango_query</code><span class="sig-paren">(</span><em class="sig-param">mango_query</em><span class="sig-paren">)</span><a class="headerlink" href="#CSTB_database_manager.db.couch.virtual.Database.execute_mango_query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute a mango query in the database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>mango_query</strong> (<em>Dict</em>) – json dict with mango query</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>error.MangoQueryError</strong> – Raises if query can’t be execute</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>List of documents that corresponds to query</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>List</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.virtual.Database.number_of_entries">
+<code class="sig-name descname">number_of_entries</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="headerlink" href="#CSTB_database_manager.db.couch.virtual.Database.number_of_entries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get number of entries in database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Number of entries in database</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.virtual.Database.add">
+<code class="sig-name descname">add</code><span class="sig-paren">(</span><em class="sig-param">doc</em><span class="sig-paren">)</span> &#x2192; CSTB_database_manager.db.couch.virtual.PositivePutAnswer<a class="headerlink" href="#CSTB_database_manager.db.couch.virtual.Database.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a document to database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>doc</strong> (<em>Dict</em>) – json document to add</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>couch answer</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#CSTB_database_manager.db.couch.virtual.PositivePutAnswer" title="CSTB_database_manager.db.couch.virtual.PositivePutAnswer">PositivePutAnswer</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.virtual.Database.replicate">
+<code class="sig-name descname">replicate</code><span class="sig-paren">(</span><em class="sig-param">new_name: str</em><span class="sig-paren">)</span><a class="headerlink" href="#CSTB_database_manager.db.couch.virtual.Database.replicate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replicate the database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>new_name</strong> (<em>str</em>) – Database will be replicate under this name</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="CSTB_database_manager.db.couch.virtual.Entity">
+<em class="property">class </em><code class="sig-prename descclassname">CSTB_database_manager.db.couch.virtual.</code><code class="sig-name descname">Entity</code><span class="sig-paren">(</span><em class="sig-param">container</em>, <em class="sig-param">couchDoc</em><span class="sig-paren">)</span><a class="headerlink" href="#CSTB_database_manager.db.couch.virtual.Entity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Represents couch entry</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>container</strong> (<a class="reference internal" href="#CSTB_database_manager.db.couch.virtual.Database" title="CSTB_database_manager.db.couch.virtual.Database"><em>Database</em></a>) – Object that handle couch database</p></li>
+<li><p><strong>_id</strong> (<em>str</em>) – _id in couch document</p></li>
+<li><p><strong>_rev</strong> – _rev in couch document</p></li>
+<li><p><strong>date</strong> (<em>str</em>) – date in couch document</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.virtual.Entity.isInDB">
+<code class="sig-name descname">isInDB</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#CSTB_database_manager.db.couch.virtual.Entity.isInDB" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if entity is already in database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if entity is in database, False if not</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.virtual.Entity.couchDoc">
+<em class="property">property </em><code class="sig-name descname">couchDoc</code><a class="headerlink" href="#CSTB_database_manager.db.couch.virtual.Entity.couchDoc" title="Permalink to this definition">¶</a></dt>
+<dd><p>get couch document for the entity</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>couch document</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.virtual.Entity.store">
+<code class="sig-name descname">store</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#CSTB_database_manager.db.couch.virtual.Entity.store" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add entity to database</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="CSTB_database_manager.db.couch.virtual.Entity.remove">
+<code class="sig-name descname">remove</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#CSTB_database_manager.db.couch.virtual.Entity.remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove entity from database</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-CSTB_database_manager.db.blast">
+<span id="blast-database"></span><h2>Blast database<a class="headerlink" href="#module-CSTB_database_manager.db.blast" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="databaseManager.html" class="btn btn-neutral float-left" title="databaseManager" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, C.Hilpert, G.Launay
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
