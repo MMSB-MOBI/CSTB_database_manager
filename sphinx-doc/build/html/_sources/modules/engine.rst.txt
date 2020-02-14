@@ -1,0 +1,9 @@
+Engines
+========
+couch databases
+-----------------
+.. currentmodule:: CSTB_database_manager.db.taxon
+.. autoclass:: 
+    :members:
+    :show-inheritance:
+    :member-order: bysource
