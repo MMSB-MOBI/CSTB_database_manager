@@ -2,31 +2,17 @@
 
 CSTB database is a collection of 3 types of couchDB databases (taxon_db, genome_db, tree_db and crispr_motif) and some local index files in the system.
 
-## Initialize database
+## [Detailed documentation](https://mmsb-mobi.github.io/CSTB_database_manager/)
+
+## Database structure
 To initialize CSTB database via databaseManager, you must provide a json config file formatted like : 
-```
-{
-    "url": "http://localhost:5984",
-    "user": "couch_agent",
-    "password": "couch",
-    "taxondb_name": "taxon_db",
-    "genomedb_name": "genome_db",
-    "treedb_name" : "tree_db"
-}
-```
 
-To initialize database manager object, simply do : 
-```
-import CSTB_database_manager.databaseManager as dbManager
-db = dbManager.databaseManager(config_file_path)
-```
 
-## Taxon and Genome databases
+### Taxon and Genome databases
 Taxon and genome databases are linked, modification in one triggers modification in the other.
 
-### Structure 
 #### Taxon database
-Taxon database is a collection of this type of documents : 
+Taxon database is a collection of of documents : 
 ```
 {
   "_id": "32cd400c3f5997cfdd3abd290e0bbebc",
@@ -42,7 +28,7 @@ Taxon database is a collection of this type of documents :
 `genomeColl` and `current` are references to Genome document. `taxid` can be `null`
 
 #### Genome database
-Genome database is a collection of this type of documents : 
+Genome database is a collection of documents : 
 ```
 {
   "_id": "32cd400c3f5997cfdd3abd290e0bb43f",
@@ -55,7 +41,7 @@ Genome database is a collection of this type of documents :
 ```
 `taxon` are reference to Taxon document. `gcf_assembly` and `accession_number` can be `null`
 
-#### Tree database
+### Tree database
 Tree database just store taxonomic tree with correct format to be display by jquery. Example : 
 ```
 {
@@ -89,38 +75,101 @@ Tree database just store taxonomic tree with correct format to be display by jqu
 }
 ```
 
-### Operations
+### Motifs databases
 
-#### Add a new element 
+### Blast database
+
+### Index database
+
+## Add a new Entry
+
+To add new entry, you will need config file (config.json) and tsv file (genomes.tsv) with list of genomes. To add in motifs databases, you will need a mapping file.
+
+**config.json** is a json file : 
+```
+{
+    "url": "http://localhost:5984",
+    "user": "couch_agent",
+    "password": "couch",
+    "taxondb_name": "taxon_db",
+    "genomedb_name": "genome_db",
+    "treedb_name" : "tree_db",
+    "blastdb_path" : "/mobi/group/databases/crispr/crispr_rc02/blast"
+}
+```
+
+**genomes.tsv**, 5 first columns are mandatory, next columns are optional : 
+```
+#fasta	taxid	name	gcf	accession	ftp
+GCF_000010525.1_ASM1052v1_genomic.fna 438753  Azorhizobium caulinodans ORS 571  GCF_000010525.1	-	ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/010/525/GCF_000010525.1_ASM1052v1/GCF_000010525.1_ASM1052v1_genomic.fna.gz
+GCF_000007365.1_ASM736v1_genomic.fna	198804	Buchnera aphidicola str. Sg (Schizaphis graminum)	GCF_000007365.1	-	ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/007/365/GCF_000007365.1_ASM736v1/GCF_000007365.1_ASM736v1_genomic.fna.gz
+...
+```
+
+**mapping.json**, json file that contains regex mapping rules for motifs databases : 
+```
+{
+  "^AAAA[ACGT]{19}$": "crispr_rc02_v0",
+  "^AAAT[ACGT]{19}$": "crispr_rc02_v1",
+  "^AAAC[ACGT]{19}$": "crispr_rc02_v2"
+  ...
+}
+```
+
+### Usage
 
 ```
-db.addGenome(fasta: str, name: str, taxid: int = None)
+add_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [--map <volume_mapper>] [--index <index_file_dump_loc>] [ --min <start_index> --max <stop_index> --cache <pickle_cache> ] [ --debug ] [ --size <batch_size> ] [ --tree ] [ --blast ]
+
+Options:
+    -h --help
+    --config <conf>  json config file (see config.json for format)
+    --genomes <genome_list> tsv file with list of genomes (columns in this order : fasta taxid name gcf accession)
+    --location <fasta_folder> path to folder containing referenced fasta in tsv file
+    --map <volume_mapper> rules to dispatch sgRNA to database endpoints. MANDATORY for sgRNA motif insertions
+    --index <index_file_dump_loc> folder location to write integer encoded sgRNA genome content
+    --min <start_index> position to read from (included) in the tsv file (header line does not count)
+    --max <stop_index>  position to read to   (included) in the tsv file (header line does not count)
+    --cache <pickle_cache>  define a folder to dump the sgnRNA locations of each provided genome
+    --size <batch_size>  Maximal number of keys in a couchDB volume collection insert (default = 10000)
+    --tree  Create taxonomic tree after insertion
+    --debug  Set debug mode ON
 ```
-`fasta` : path to fasta file  
-`name` : taxon name  
-`taxid` : (optional) taxon taxid
 
-Insertion into database will be done when : 
-  * fasta doesn't exist in genome database and taxon doesn't exist in taxon database
-  * fasta doesn't exist in genome database and taxon exists in taxon database -> fasta is considered as a new version for taxon. 
-  
-Insertion will not be done and we ask for update when: 
-  * fasta exists in genome database but is linked with an other taxon -> you need to update taxon or delete genome to insert
-  * fasta exists in genome database but is an old version for taxon -> you need to change taxon version  
-  * taxid exists but associated with an other name -> you need to update taxon
-  * fasta exists but associated with other gcf/accession -> you need to update genome
-  
-#### Update genome
- 
-#### Update taxon
+### Examples
 
-#### Remove genome
-
-#### Remove taxon
-
-#### Change taxon version
-
-#### Create taxonomic tree from taxon database
+#### Add 10 first genomes in genome and taxon databases
 ```
-db.createTree()
+python add_genome.py --config config.json --genomes genomes.tsv --location <fasta_folder> --min 0 --max 9
 ```
+
+#### Add 10 first genomes in genome, taxon and motifs/index databases 
+* With pickle cache
+```
+python add_genome.py --config config.json --genomes genomes.tsv --location <fasta_folder> --min 0 --max 9 --map mapping.json --index <index_file_dump_loc> --cache <cache_directory>
+```
+* Without cache
+```
+python add_genome.py --config config.json --genomes genomes.tsv --location <fasta_folder> --min 0 --max 9 --map mapping.json --index <index_file_dump_loc>
+```
+
+#### Add genomes to blast database
+ ```
+python add_genome.py --config config.json --genomes genomes.tsv --location <fasta_folder> --blast
+```
+
+#### Add tree to tree databases from taxon informations stored in taxon database
+```
+python add_genome.py --config config.json --genomes genomes.tsv --location <fasta_folder> --tree
+```
+
+#### Add all genomes in all databases
+```
+python add_genome.py --config config.json --genomes genomes.tsv --location <fasta_folder> --map mapping.json --index <index_file_dump_loc> --blast --tree
+```
+
+
+
+
+
+
