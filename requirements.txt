@@ -3,3 +3,4 @@ CSTB-core
 pycouch
 typeguard
 ete3
+six
