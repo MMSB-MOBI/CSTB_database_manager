@@ -109,7 +109,7 @@ class DatabaseManager():
         :type acc: str
         """
         logging.info(f"Add genome\nfasta : {fasta}\nname : {name}\ntaxid : {taxid}\ngcf: {gcf}\nacc: {acc}")
-
+        fasta_name = fasta.split("/")[-1]
         try :
             fasta_md5 = fastaHash(fasta)
         except FileNotFoundError:
@@ -127,12 +127,12 @@ class DatabaseManager():
         
         if not genome_entity:
             try:
-                size = self._get_fasta_size(fasta)
+                size, headers = self._proceed_fasta(fasta)
             except error.FastaHeaderConflict as e:
                 logging.error(f"Can't add your entry because FastaHeaderConflict\n{e}")
                 return
                 
-            genome_entity = self.genomedb.createNewGenome(fasta_md5, size, gcf, acc)
+            genome_entity = self.genomedb.createNewGenome(fasta_md5, size, headers, fasta_name, gcf, acc)
 
         try:
             taxon_entity = self.taxondb.get(name, taxid)
@@ -199,27 +199,30 @@ class DatabaseManager():
                 genome.taxon = taxon._id
                 taxon.current = genome._id
                 taxon.genomeColl = [genome._id]
-    
-    def _get_fasta_size(self, fasta: str) -> Dict:
-        """Get fasta sequences sizes
+
+    def _proceed_fasta(self, fasta:str):
+        """Proceed fasta file to get sequences sizes and store sequences headers
         
         :param fasta: Path to fasta file
         :type fasta: str
-        :raises error.FastaHeaderConflict: Raises if two fasta header are in conflict. 
-        :return: Dictionnary with size for each fasta header
-        :rtype: Dict -> {fasta_header(str) : size(int)}
+        :return: 2 dictionnaries, first with size for each fasta subsequences and second with complete headers for each fasta subsequences
         """
+
         dic_size = {}
+        dic_headers = {}
+
         with zFile(fasta) as f: 
             for l in f: 
                 if l.startswith('>'):
                     ref = l.split(" ")[0].lstrip(">")
+                    complete_header = l.rstrip("\n").lstrip(">")
                     if ref in dic_size:
                         raise error.FastaHeaderConflict(f"Two fasta header have same first identifiant : {ref}. Change fasta headers to insert this genome.")
                     dic_size[ref] = 0
+                    dic_headers[ref] = complete_header
                 else:
                     dic_size[ref] += len(l.rstrip())           
-        return dic_size
+        return dic_size, dic_headers
 
     def _get_md5(self, fasta:str) -> str:
         hasher = hashlib.md5()

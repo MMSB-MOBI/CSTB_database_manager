@@ -3,7 +3,7 @@ from typing import TypedDict, Optional, Dict
 import CSTB_database_manager.db.couch.virtual
 import CSTB_database_manager.utils.error as error
 
-GenomeDoc = TypedDict("GenomeDoc", {"_id": str, "_rev": Optional[str], "taxon": str, "fasta_md5": str, "gcf_assembly": Optional[str], "accession_number": Optional[str], "size": Dict, "date": str}, total=False)
+GenomeDoc = TypedDict("GenomeDoc", {"_id": str, "_rev": Optional[str], "taxon": str, "fasta_md5": str, "gcf_assembly": Optional[str], "accession_number": Optional[str], "size": Dict, "date": str, "headers": Dict, "fasta_name": str}, total=False)
 
 @typechecked
 class GenomeDB(CSTB_database_manager.db.couch.virtual.Database):
@@ -46,7 +46,7 @@ class GenomeDB(CSTB_database_manager.db.couch.virtual.Database):
 
         return GenomeEntity(self, doc)
 
-    def createNewGenome(self, fasta_md5:str, size: Dict, gcf: str = None, acc: str = None) -> 'GenomeEntity':
+    def createNewGenome(self, fasta_md5:str, size: Dict, headers: Dict, fasta_name: str, gcf: str = None, acc: str = None) -> 'GenomeEntity':
         """Create genome entity
         
         :return: Genome Entity
@@ -57,7 +57,9 @@ class GenomeDB(CSTB_database_manager.db.couch.virtual.Database):
             "fasta_md5" : fasta_md5,
             "gcf_assembly" : gcf, 
             "accession_number": acc,
-            "size": size
+            "size": size,
+            "headers": headers,
+            "fasta_name": fasta_name
         }
         return GenomeEntity(self, doc)
 
@@ -86,6 +88,10 @@ class GenomeEntity(CSTB_database_manager.db.couch.virtual.Entity):
     :vartype accession_number: str
     :ivar size: Sizes of fasta sequences
     :vartype size: Dict -> {fasta_header(str):size(int)}
+    :ivar headers: Complete headers of fasta sequences
+    :vartype headers: Dict -> {fasta_header(str):complete_header(str)}
+    :ivar fasta_name: Name of fasta stored in system file
+    :vartype fasta_name: str
     
     """
 
@@ -103,9 +109,11 @@ class GenomeEntity(CSTB_database_manager.db.couch.virtual.Entity):
         self.gcf_assembly = couchDoc["gcf_assembly"] if couchDoc.get("gcf_assembly") else None
         self.accession_number = couchDoc["accession_number"] if couchDoc.get("accession_number") else None
         self.size = couchDoc["size"]
+        self.headers = couchDoc["headers"]
+        self.fasta_name = couchDoc["fasta_name"]
 
     def __eq__(self, other :'GenomeEntity') -> bool:
-        return self.fasta_md5 == other.fasta_md5 and self.taxon == other.taxon and self.gcf_assembly == other.gcf_assembly and self.accession_number == other.accession_number and self.size == other.size
+        return self.fasta_md5 == other.fasta_md5 and self.taxon == other.taxon and self.gcf_assembly == other.gcf_assembly and self.accession_number == other.accession_number and self.size == other.size and self.headers == other.headers and self.fasta_name == other.fasta_name
     
     def __str__(self) -> str :
         return str(self.__dict__)
