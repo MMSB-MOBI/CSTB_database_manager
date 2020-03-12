@@ -6,7 +6,9 @@ from typeguard import typechecked
 import pycouch.wrapper as wrapper
 
 from CSTB_core.engine.word_detect import sgRNAfastaSearch
-from CSTB_core.engine.wordIntegerIndexing import indexAndOccurence as computeMotifsIndex
+from CSTB_core.utils.io import sgRNAIndexWriter
+from CSTB_core.engine.wordIntegerIndexing import indexAndMayOccurence as computeMotifsIndex
+from CSTB_core.engine.wordIntegerIndexing import getEncoding
 import CSTB_database_manager.db.couch.taxon as taxonDBHandler
 import CSTB_database_manager.db.couch.genome as genomeDBHandler
 import CSTB_database_manager.db.blast as blastDBHandler
@@ -347,12 +349,13 @@ class DatabaseManager():
                 logging.info(f"databaseManager::addFastaMotif:indexation of \"{indexLen}\" sgnRNA motifs wrote to {indexLocation}/{uuid}.index")
        
     def addIndexMotif(self, location, sgnRNAdata, uuid):
-        indexData = computeMotifsIndex(sgnRNAdata)
-        with open (location + '/' + uuid + '.index', 'w') as fp:
-            fp.write(str(len(indexData)) + "\n")
-            for datum in indexData:
-                fp.write( ' '.join([str(d) for d in datum]) + "\n")
-        return len(indexData)
+        indexData, wLen = computeMotifsIndex(sgnRNAdata)
+        dataLen = sgRNAIndexWriter(indexData, f"{location}/{uuid}.index", wLen, getEncoding()[0])
+        #with open (location + '/' + uuid + '.index', 'w') as fp:
+        #    fp.write(str(len(indexData)) + "\n")
+        #    for datum in indexData:
+        #        fp.write( ' '.join([str(d) for d in datum]) + "\n")
+        return dataLen
 
     def addFastaMotif(self, fastaFile, batchSize):   
         fasta_md5 = fastaHash(fastaFile)
