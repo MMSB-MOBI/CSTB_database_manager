@@ -3,7 +3,7 @@ from datetime import datetime
 import pycouch.wrapper as pycouch_wrapper
 import CSTB_database_manager.utils.error as error
 from typeguard import typechecked
-from typing import TypedDict
+from typing import TypedDict, Set
 import logging
 
 class PositivePutAnswer(TypedDict):
@@ -76,6 +76,13 @@ class Database():
         :type new_name: str
         """
         self.wrapper.couchReplicate(self.db_name, new_name)
+
+    def getAllIds(self) -> Set[str]:
+        ids = set()
+        all_docs = self.wrapper.couchGetRequest(f"{self.db_name}/_all_docs")
+        for doc in all_docs["rows"] : 
+            ids.add(doc["id"])
+        return ids
 
 
 class Entity():

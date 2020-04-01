@@ -249,24 +249,23 @@ class DatabaseManager():
         return fasta_md5
 
     ## NEED DEVELOPMENT    
-    def removeGenome(self, fasta: str, gcf: str = None, acc:str = None): 
-        logging.info("Remove genome")
-        try:
-            md5 = self._get_md5(fasta)
+    def removeGenomeFromFasta(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None): 
+        logging.info(f"= Remove genome\nfasta: {fasta}\n name : {name}\n taxid : {taxid}\n gcf : {gcf}\n acc : {acc}")
+        try :
+            fasta_md5 = fastaHash(fasta)
         except FileNotFoundError:
-            logging.error("Can't remove your entry because fasta file is not found")
-            return
+            logging.error(f"Can't remove your entry because fasta file is not found.")
+            return  
+
         try: 
-            genome = self.genomedb.get(md5)
+            genome = self.genomedb.get(fasta_md5, gcf, acc)
         except error.DuplicateError as e:
             logging.error(f"Can't remove your entry because of DuplicateError\nreason: {e}")
             return
         except error.ConsistencyError as e :
             logging.error(f"Can't remove your entry because of ConsistencyError\nreason: {e}")
             return
-        except wrapper.CouchWrapperError as e:
-            logging.error(f"Can't remove your entry because of CouchWrapperError\nreason: {e}")
-            return
+        
         if not genome:
             logging.error(f"Genome doesn't exist in genome database")
             return
@@ -274,15 +273,16 @@ class DatabaseManager():
         logging.info(f"Genome : {genome._id}")
         logging.info(f"Corresponding taxon is {genome.taxon}")
 
-        try: 
-            taxon = self.taxondb.getFromID(genome.taxon)
-        except wrapper.CouchWrapperError as e : 
-            logging.info(f"Can't remove your entry because of CouchWrapperError\nreason: {e}")
-            return
-
+        taxon = self.taxondb.getFromID(genome.taxon)
         if not taxon: 
             raise error.ConsistencyError(f"Associated taxon {genome.taxon} doesn't exist in taxon database")
         
+        if taxon.taxid != taxid : 
+            raise error.ConsistencyError(f"Database taxon taxid {taxon.taxid} doesn't correspond to your taxid {taxid}")
+
+        if taxon.name != name : 
+            raise error.ConsistencyError(f"Database taxon name {taxon.name} doesn't correspond to your name {name}")
+
         if not genome._id in taxon.genomeColl: 
             raise error.ConsistencyError(f"Genome {genome._id} is not linked with its taxon {taxon._id}")
 
@@ -298,6 +298,8 @@ class DatabaseManager():
             taxon.current = taxon.genomeColl[-1]
             genome.remove()
             taxon.store()
+        
+        return genome._id 
 
     def createTree(self):
         """Create taxonomic tree from taxon database. Will automatically search taxon, create tree and store tree into database.
@@ -416,13 +418,13 @@ class DatabaseManager():
             logging.error(f"Can't add your entry because ConsistencyError in genome database \nReason : \n{e}")
             return
         
-        logging.info(genome_entity)
-
-    def checkConsistency(self, motif_ranks: str) -> Tuple[Set[str], Set[str]]:
+    def checkConsistency(self, motif_ranks: str, metadata_out: str) -> Tuple[Set[str], Set[str]]:
         """Check consistency between genome collection ids and motifs collection ids. For now, motif ids has to be provided as a json file, but maybe later we include the computation here.
 
         :param motif_ranks: Path to json file for motif collection (from ms-db-manager)
         :type motif_ranks: str
+        :param metadata_out: Path to tsv file where to write metadata for ids in genome and not in motif
+        :type metadata_out: str
         :return: Tuple of 2 sets, first with ids present in motif collection and not in genome collection, second with ids present in genome collection and not in motif collection
         :rtype: Tuple[Set[str], Set[str]]
         """
@@ -443,7 +445,19 @@ class DatabaseManager():
         genome_ids = self.genomedb.getAllIds()
         logging.info(f"{len(genome_ids)} ids in genome database")
 
-        return motifs_ids.difference(genome_ids), genome_ids.difference(motifs_ids)
+        #For id present in genome and not in motif, also display metadata
+        genome_not_motif = genome_ids.difference(motifs_ids)
+        if genome_not_motif: 
+            out = open(metadata_out, "w")
+            out.write("#fasta\ttaxid\tname\tgcf\taccession\n")
+            for id in genome_not_motif:
+                genome = self.genomedb.getFromID(id)
+                taxon = self.taxondb.getFromID(genome.taxon)
+                out.write(f'{genome.fasta_name}\t{taxon.taxid}\t{taxon.name}\t{genome.gcf_assembly if genome.gcf_assembly else "-"}\t{genome.accession_number if genome.accession_number else "-"}\n')
+            out.close()
+            
+        return motifs_ids.difference(genome_ids), genome_not_motif
+
 
 
 
