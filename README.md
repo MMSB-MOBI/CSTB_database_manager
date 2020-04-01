@@ -207,13 +207,34 @@ If you have unconsistency in the database, it's your job to fix problem until co
 **Example of cases** 
 * I have ids present in genome collection and not in motifs collection : 
   * I want to add this genomes in motif collection : Re-use the add_genome.py script for this list of genomes, if fasta and taxon are the same, the same id will be reused in motif collection. If fasta is different, it will be considered as new and current version of the taxon. You can delete the old version if you want. 
-  * I want to delete this genomes from genome collection : remove_genome.py TO IMPLEMENT
+  * I want to delete this genomes from genome collection : Use remove_genome.py, see Remove genome section in this readme. 
 
 * I have ids present in motifs collection and not in genome collection : 
     * I want to delete this genomes from motif collection : use [ms-db-manager](https://github.com/glaunay/ms-db-manager)
 
     * I want to add this genomes in genome collection : for now it's not possible to add the genomes and conserve the same ids. We advice to delete from motif collection and re-add, a new id will be used.
 
+## Remove genome
+
+You can **delete a genome from genome and taxon collections** the same way as adding a genome. 
+
+```
+usage: remove_genome.py [-h] -l <file> -c <json file> -f <dir>
+  -h, --help            show this help message and exit
+  -l <file>, --metadata_list <file>
+                        tsv file with metadata for a list of genomes (columns in this order : fasta taxid name gcf accession)
+  -c <json file>, --config <json file>
+                        database config file
+  -f <dir>, --fasta_dir <dir>
+                        Directory where fasta file are stored
+```
+
+Then **delete the motifs** corresponding to genome with [ms-db-manager
+](https://github.com/glaunay/ms-db-manager) (part Delete all sgRNAs relative to a particular specie)
+
+Don't forget to **delete index files** in file system
+
+TO IMPLEMENT : blast ?? 
 
 
 
