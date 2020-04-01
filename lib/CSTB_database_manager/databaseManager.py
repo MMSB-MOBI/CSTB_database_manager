@@ -1,6 +1,6 @@
 import json, copy, pickle
 
-from typing import TypedDict, Tuple, Dict
+from typing import TypedDict, Tuple, Dict, Set
 from typeguard import typechecked
 
 import pycouch.wrapper as wrapper
@@ -114,7 +114,7 @@ class DatabaseManager():
             fasta_md5 = fastaHash(fasta)
         except FileNotFoundError:
             logging.error(f"Can't add your entry because fasta file is not found.")
-            return       
+            return    
 
         try:
             genome_entity = self.genomedb.get(fasta_md5, gcf, acc)
@@ -125,6 +125,22 @@ class DatabaseManager():
             logging.error(f"Can't add your entry because ConsistencyError in genome database \nReason : \n{e}")
             return
         
+        #Check if genome_entity contains headers and fasta_name or if it's old version, and update it if necessary. (Temporary hack until all is updated)
+        if genome_entity and (not genome_entity.headers or not genome_entity.fasta_name):
+            #WARN: Duplicated code
+            try:
+                size, headers = self._proceed_fasta(fasta)
+            except error.FastaHeaderConflict as e:
+                logging.error(f"Can't add your entry because FastaHeaderConflict\n{e}")
+                return
+
+            logging.warn(f"Your genome entry already exists but as old version (no headers and no fasta_name), the entry will be updated")
+            try: 
+                genome_entity.update(headers = headers, fasta_name = fasta_name)
+            except error.NotAvailableKeys as e: 
+                logging.error(f"Can't update your entry because NotAvailableKeys\n{e}")
+                return
+
         if not genome_entity:
             try:
                 size, headers = self._proceed_fasta(fasta)
@@ -177,7 +193,7 @@ class DatabaseManager():
                         logging.warn("Genome already exists as current version")
                     else:
                         if genome._id in taxon.genomeColl:
-                            raise error.VersionError(f'This genome exists as an older version of Taxon (name : {taxon.name}, taxid : {taxon.taxid})')
+                            raise error.VersionError(f'This genome ({genome._id}) exists as an older version of Taxon ({taxon._id} name : {taxon.name}, taxid : {taxon.taxid})')
                         else:
                             raise error.LinkError("Taxon link in Genome but no Genome link in Taxon.")
                 else:
@@ -382,3 +398,61 @@ class DatabaseManager():
        
             r = self.wrapper.volDocAdd(d)
         return (sgRNA_data, uuid, r)
+    
+    def addHeadersAndFastaName(self, fasta, gcf, acc):
+        fasta_name = fasta.split("/")[-1]
+        try :
+            fasta_md5 = fastaHash(fasta)
+        except FileNotFoundError:
+            logging.error(f"Can't add your entry because fasta file is not found.")
+            return       
+
+        try:
+            genome_entity = self.genomedb.get(fasta_md5, gcf, acc)
+        except error.DuplicateError as e: 
+            logging.error(f"Can't add your entry because DuplicateError in genome database \nReason : \n{e}")
+            return
+        except error.ConsistencyError as e: 
+            logging.error(f"Can't add your entry because ConsistencyError in genome database \nReason : \n{e}")
+            return
+        
+        logging.info(genome_entity)
+
+    def checkConsistency(self, motif_ranks: str) -> Tuple[Set[str], Set[str]]:
+        """Check consistency between genome collection ids and motifs collection ids. For now, motif ids has to be provided as a json file, but maybe later we include the computation here.
+
+        :param motif_ranks: Path to json file for motif collection (from ms-db-manager)
+        :type motif_ranks: str
+        :return: Tuple of 2 sets, first with ids present in motif collection and not in genome collection, second with ids present in genome collection and not in motif collection
+        :rtype: Tuple[Set[str], Set[str]]
+        """
+        logging.info("Check database consistency")
+        def storeMotifIds(motif_ranks: str) -> Set[str]:
+            motifs_ids = set()
+            with open(motif_ranks) as mr : 
+                motifs_json = json.load(mr)
+            
+            for species in motifs_json["ranks"]:
+                motifs_ids.add(species["specie"])
+            
+            return motifs_ids
+
+        motifs_ids = storeMotifIds(motif_ranks)
+        logging.info(f"{len(motifs_ids)} ids in motif database")
+
+        genome_ids = self.genomedb.getAllIds()
+        logging.info(f"{len(genome_ids)} ids in genome database")
+
+        return motifs_ids.difference(genome_ids), genome_ids.difference(motifs_ids)
+
+
+
+
+
+
+
+
+
+        
+        
+

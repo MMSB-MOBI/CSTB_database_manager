@@ -25,3 +25,7 @@ class BlastConnectionError(Exception):
 class FastaHeaderConflict(Exception):
     """Raised when 2 fasta header have same first word"""
     pass
+
+class NotAvailableKeys(Exception):
+    """Raised when you try to change or add a forbidden key"""
+    pass

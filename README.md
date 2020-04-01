@@ -168,6 +168,57 @@ python add_genome.py --config config.json --genomes genomes.tsv --location <fast
 python add_genome.py --config config.json --genomes genomes.tsv --location <fasta_folder> --map mapping.json --index <index_file_dump_loc> --blast --tree
 ```
 
+## Check consistency in database
+
+First, you need to get summary of motif database content by using [ms-db-manager
+](https://github.com/glaunay/ms-db-manager). 
+
+We advice to first set the views if not already done : 
+```
+cd ms-db-manager/build
+node index.js --target 'crispr_rc01_v[0-255]' --design ../views/byOrganism.json --config ../config.json
+```
+
+Then rank the data : 
+```
+node index.js --target 'crispr_rc021_v[0-255] --rank ../crispr_rc021_species.json --config ../config.json
+```
+Ranked json file will be used for checking consistency. 
+
+You can now check consistency with : 
+```
+python scripts/check_consistency.py -c config.json -m crispr_rc021_species.json
+```
+
+The script write results in standard output and will display ids present in motif collection and not in genome collection and opposite. Example of result : 
+```
+#Present in motif collection and not in genome collection
+
+#Present in genome collection and not in motif collection
+e7bdf2793c3942870a9f84806a6846be
+e7bdf2793c3942870a9f84806a68359d
+e7bdf2793c3942870a9f84806a681b60
+e7bdf2793c3942870a9f84806a684b19
+e7bdf2793c3942870a9f84806a6800cc
+```
+
+If you have unconsistency in the database, it's your job to fix problem until consistency.
+
+**Example of cases** 
+* I have ids present in genome collection and not in motifs collection : 
+  * I want to add this genomes in motif collection : Re-use the add_genome.py script for this list of genomes, if fasta and taxon are the same, the same id will be reused in motif collection. If fasta is different, it will be considered as new and current version of the taxon. You can delete the old version if you want. 
+  * I want to delete this genomes from genome collection : remove_genome.py TO IMPLEMENT
+
+* I have ids present in motifs collection and not in genome collection : 
+    * I want to delete this genomes from motif collection : use [ms-db-manager](https://github.com/glaunay/ms-db-manager)
+
+    * I want to add this genomes in genome collection : for now it's not possible to add the genomes and conserve the same ids. We advice to delete from motif collection and re-add, a new id will be used.
+
+
+
+
+
+
 
 
 
