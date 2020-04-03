@@ -1,35 +1,54 @@
-import argparse, logging, sys
+"""Remove genome from database (except motif collection)
+
+Usage:
+    remove_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [ --min <start_index> --max <stop_index> ] [ --tree ] [ --blast ]
+
+Options:
+    -h --help
+    --config <conf>  json config file (see config.json for format)
+    --genomes <genome_list> tsv file with list of genomes to remove (columns in this order : fasta taxid name gcf accession)
+    --location <fasta_folder> path to folder containing referenced fasta in tsv file
+    --min <start_index> position to read from (included) in the tsv file (header line does not count)
+    --max <stop_index>  position to read to   (included) in the tsv file (header line does not count)
+    --tree  Create taxonomic tree after deletion
+    --blast  Remove from blast database
+
+"""
+
+import logging, sys
+from docopt import docopt
 import CSTB_database_manager.databaseManager as dbManager
 import CSTB_database_manager.utils.error as error
 from CSTB_core.utils.io import tsvReader, zExists
 
 logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(filename)s:%(lineno)s\t%(message)s', stream=sys.stdout)
 
-def args_gestion():
-    parser = argparse.ArgumentParser(description = "Remove genome from database (except motif collection) from metadata list or ids list")
-    parser.add_argument("-l", "--metadata_list", metavar = "<file>", help = "tsv file with metadata for a list of genomes (columns in this order : fasta taxid name gcf accession)", required = True)
-    parser.add_argument("-c", "--config", metavar = "<json file>", help = "database config file", required = True)
-    parser.add_argument("-f", "--fasta_dir", metavar = "<dir>", help = "Directory where fasta file are stored", required = True)
-    return parser.parse_args()
 
 if __name__ == "__main__":
-    ARGS = args_gestion()
+    ARGS = docopt(__doc__, version="1.0.0")
 
-    db = dbManager.DatabaseManager(ARGS.config)
+    db = dbManager.DatabaseManager(ARGS["--config"])
 
-    if ARGS.metadata_list: 
-        for (fasta, name, taxid, gcf, acc) in tsvReader(ARGS.metadata_list):
-            fasta_path = ARGS.fasta_dir + "/" + fasta
-            if not zExists(fasta_path):
-                raise ValueError(f'No fasta file at {fasta_path}')
-            try : 
-                deleted_id = db.removeGenomeFromFasta(fasta_path, name, taxid, gcf, acc)
-            except error.ConsistencyError as e:  
-                logging.error(f"Can't remove your genome because of ConsistencyError\nReason : \n{e}")
+    x = int(ARGS["--min"]) if not ARGS["--min"] is None  else 0
+    y = int(ARGS["--max"]) if not ARGS["--max"] is None else len([ _ for _ in tsvReader(ARGS["--genomes"])])
 
-            logging.info(f"{deleted_id} successfully deleted from genome and taxon collection")
+    fastaFileList = []
+    for (fasta, name, taxid, gcf, acc) in tsvReader(ARGS["--genomes"], x, y):
+        
+        fastaFileList.append(ARGS["--location"] + '/' + fasta)
+
+        if not zExists(fastaFileList[-1]):
+            raise ValueError(f'No fasta file at {fastaFileList[-1]}')
+        
+       #try : 
+            #deleted_id = db.removeGenomeFromGenomeAndTaxon(fasta_path, name, taxid, gcf, acc)
+        #except error.ConsistencyError as e:  
+        #    logging.error(f"Can't remove your genome because of ConsistencyError\nReason : \n{e}")
+
+        #logging.info(f"{deleted_id} successfully deleted from genome and taxon collection")
     
-    #NEED TO ADD DELETION IN INDEX AND BLAST 
+    if ARGS ["--blast"]:
+        db.removeFromBlast(fastaFileList)
 
 
 

@@ -249,7 +249,7 @@ class DatabaseManager():
         return fasta_md5
 
     ## NEED DEVELOPMENT    
-    def removeGenomeFromFasta(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None): 
+    def removeGenomeFromGenomeAndTaxon(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None): 
         logging.info(f"= Remove genome\nfasta: {fasta}\n name : {name}\n taxid : {taxid}\n gcf : {gcf}\n acc : {acc}")
         try :
             fasta_md5 = fastaHash(fasta)
@@ -457,6 +457,17 @@ class DatabaseManager():
             out.close()
             
         return motifs_ids.difference(genome_ids), genome_not_motif
+
+    def removeFromBlast(self, fastaList):
+        logging.info("Remove from Blast database")
+        for zFasta in fastaList:
+            fasta_md5 = fastaHash(zFasta)
+            genomElem = self.genomedb.get(fasta_md5)
+            for header, seq, _id  in zFastaReader(zFasta):
+                _header = f">{genomElem._id}|{header.replace(r'/^>//', '')}"
+                self.blastdb.remove(_header, seq)
+            
+            self.blastdb.close()
 
 
 

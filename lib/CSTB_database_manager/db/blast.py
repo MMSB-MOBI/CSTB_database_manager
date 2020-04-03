@@ -7,6 +7,7 @@ import os, glob, re, pickle
 from CSTB_core.utils.io import which
 from CSTB_core.utils.io import gunzipToFile as gunzip
 from CSTB_core.utils.io import fileToGunzip as gzip
+from CSTB_core.utils.io import zFastaReader
 
 from subprocess import check_call
 import logging
@@ -27,6 +28,7 @@ class BlastDB ():
         self.location = blastFolder
         self.registry = self._parsingDatabase()
         self._buffer = []
+        self._delete_buffer = []
         if self.empty:
             logging.warn(f"Database {self.tag} seems empty")
             self.data = {}
@@ -189,7 +191,35 @@ class BlastDB ():
             logging.info(f"blast::add:Bouncing {header}, sequence already stored")
             return
         self._buffer.append( (header, sequence, key) )
-    
+
+    def remove(self, header, sequence): 
+        key = hashSequence(sequence)
+        if not key in self.data: 
+            logging.warn(f"blast::remove:Fasta sequence {header} doesn't exist in blast database")
+        else:
+            self._delete_buffer.append( (header, sequence, key) )
+
+    def _add_to_mfasta(self, overwrite = False):
+        if overwrite:
+            logging.info("Overwrite mfasta")
+            fp = open (self.fastaBufferFile, 'w')
+        else:
+            fp = open(self.fastaBufferFile, 'a')
+
+        for t in self._buffer:
+            fp.write(t[0] + '\n')
+            fp.write(t[1] + '\n')
+        
+        fp.close()
+
+    def _remove_from_mfasta(self):
+        to_delete_headers = [buf[0] for buf in self._delete_buffer]
+        for header, seq, _id  in zFastaReader(self.fastaBufferFile):
+            key = hashSequence(seq)
+            _header = f">{header}"
+            if not _header in to_delete_headers: 
+                self._buffer.append( (_header, seq, key) ) # Add sequences that we want to keep to buffer for rewriting
+
     def flush(self):
         logging.info("flushing")
         self.fastaBufferFile = None
@@ -204,12 +234,15 @@ class BlastDB ():
         else :
             self.fastaBufferFile = self.fastaFile
         
-        
-        with open (self.fastaBufferFile, 'a') as fp:
-            for t in self._buffer:
-                fp.write(t[0] + '\n')
-                fp.write(t[1] + '\n')
+        remove = False 
 
+        if self._delete_buffer:
+            remove = True
+            self._remove_from_mfasta()
+
+        if self._buffer:
+            self._add_to_mfasta(overwrite = remove) 
+        
     def clean(self):
         logging.info(f"Computing checksum of {self.fastaFile}")
         self.checksum  = os.path.getsize(self.fastaFile)
@@ -230,12 +263,14 @@ class BlastDB ():
                 check_call(args, stdout=stdout, stderr=stderr, cwd=self.location)
     
     def updateIndex(self):
+        for header, seq, hKey in self._delete_buffer:
+            del self.data[hKey]
         for header, seq, hKey in self._buffer:
             self.data[hKey] = header
 
     def close(self):
         logging.info("closing")
-        if not self._buffer :
+        if not self._buffer and not self._delete_buffer:
             return
         self.flush()
         self._formatdb()
