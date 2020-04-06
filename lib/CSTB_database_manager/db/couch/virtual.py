@@ -77,7 +77,8 @@ class Database():
         """
         self.wrapper.couchReplicate(self.db_name, new_name)
 
-    def getAllIds(self) -> Set[str]:
+    @property
+    def all_ids(self) -> Set[str]:
         ids = set()
         all_docs = self.wrapper.couchGetRequest(f"{self.db_name}/_all_docs")
         for doc in all_docs["rows"] : 

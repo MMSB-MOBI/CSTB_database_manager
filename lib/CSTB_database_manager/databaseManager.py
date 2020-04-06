@@ -1,6 +1,6 @@
 import json, copy, pickle
 
-from typing import TypedDict, Tuple, Dict, Set
+from typing import TypedDict, Tuple, Dict, Set, Optional
 from typeguard import typechecked
 
 import pycouch.wrapper as wrapper
@@ -11,7 +11,9 @@ from CSTB_core.engine.wordIntegerIndexing import indexAndMayOccurence as compute
 from CSTB_core.engine.wordIntegerIndexing import getEncoding
 import CSTB_database_manager.db.couch.taxon as taxonDBHandler
 import CSTB_database_manager.db.couch.genome as genomeDBHandler
+import CSTB_database_manager.db.index as indexDBHandler
 import CSTB_database_manager.db.blast as blastDBHandler
+import CSTB_database_manager.engine.intersection as intersect
 
 import CSTB_database_manager.utils.error as error
 from CSTB_core.utils.io import fileHash as fastaHash
@@ -31,6 +33,7 @@ class ConfigType(TypedDict):
     genomedb_name: str
     treedb_name: str
     blastdb_path : str
+    indexdb_path : str
 
 @typechecked
 class DatabaseManager():
@@ -40,8 +43,11 @@ class DatabaseManager():
     def __init__(self, config_file:str) -> None:
         if not isinstance(config_file, str):
             raise TypeError(f"config_file must be str not {type(config_file)}")
-
-        config: ConfigType = self._load_config(config_file)
+        try:
+            config: ConfigType = self._load_config(config_file)
+        except Exception as e:
+            logging.error(f"Error while load config\n{e}")
+            exit()
         self.wrapper: wrapper.Wrapper = self._init_wrapper(config["url"], (config["user"], config["password"]))
         self.taxondb = self._init(config["taxondb_name"], taxonDBHandler.TaxonDB)
         self.genomedb = self._init(config["genomedb_name"], genomeDBHandler.GenomeDB)
@@ -53,6 +59,12 @@ class DatabaseManager():
             self.blastdb = None
         else:
             self.blastdb = blastDBHandler.connect(config["blastdb_path"])
+
+        if not "indexdb_path" in config:
+            logging.warn("No index database specified")
+            self.indexdb = None
+        else:
+            self.indexdb = indexDBHandler.connect(config["indexdb_path"])
 
     def _load_config(self, config_file:str)-> ConfigType:
         with open(config_file) as f:
@@ -248,7 +260,6 @@ class DatabaseManager():
         fasta_md5 = hasher.hexdigest()
         return fasta_md5
 
-    ## NEED DEVELOPMENT    
     def removeGenomeFromGenomeAndTaxon(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None): 
         logging.info(f"= Remove genome\nfasta: {fasta}\n name : {name}\n taxid : {taxid}\n gcf : {gcf}\n acc : {acc}")
         try :
@@ -417,57 +428,96 @@ class DatabaseManager():
         except error.ConsistencyError as e: 
             logging.error(f"Can't add your entry because ConsistencyError in genome database \nReason : \n{e}")
             return
+
+    def _getAllIdsMotifs(self, motif_ranks:str) -> Set[str]:
+        motifs_ids = set()
+        with open(motif_ranks) as mr : 
+            motifs_json = json.load(mr)
+        for species in motifs_json["ranks"]:
+            motifs_ids.add(species["specie"])
+        return motifs_ids 
+
+    def getAllIdsFromDatabase(self, database:str, motif_ranks:Optional[str] = None):
+        if database == "motif":
+            if not motif_ranks:
+                raise Exception("For motif database, you need to provide motif ranks previously computed")
+            
+            return self._getAllIdsMotifs(motif_ranks)
         
-    def checkConsistency(self, motif_ranks: str, metadata_out: str) -> Tuple[Set[str], Set[str]]:
+        if database == "genome" :
+           return self.genomedb.all_ids
+        
+        if database == "blast":
+            if not self.blastdb : 
+                raise Exception("Blast database doesn't exist. Do you provide path in config ?")
+                
+            return self.blastdb.all_ids
+
+        if database == "index":
+            if not self.indexdb:
+                raise Exception("Index database doesn't exit. Do you provide path in config ?")
+            return self.indexdb.all_ids
+
+        return   
+        
+    def checkConsistency(self, db1: str, db2: str, motif_ranks:Optional[str] = None, metadata_out:Optional[str] = None) -> Tuple[Set[str], Set[str]]:
         """Check consistency between genome collection ids and motifs collection ids. For now, motif ids has to be provided as a json file, but maybe later we include the computation here.
 
         :param motif_ranks: Path to json file for motif collection (from ms-db-manager)
         :type motif_ranks: str
         :param metadata_out: Path to tsv file where to write metadata for ids in genome and not in motif
         :type metadata_out: str
-        :return: Tuple of 2 sets, first with ids present in motif collection and not in genome collection, second with ids present in genome collection and not in motif collection
+        :param db1: First database to check
+        :type db1: str among motif | genome | blast | index
+        :param db2: Second database to check
+        :type db2: str among motif | genome | blast | index
+        :return: Tuple of 2 sets, first with ids present in db1 and not in db2, second with ids present in db2 and not in db1
         :rtype: Tuple[Set[str], Set[str]]
         """
-        logging.info("Check database consistency")
-        def storeMotifIds(motif_ranks: str) -> Set[str]:
-            motifs_ids = set()
-            with open(motif_ranks) as mr : 
-                motifs_json = json.load(mr)
-            
-            for species in motifs_json["ranks"]:
-                motifs_ids.add(species["specie"])
-            
-            return motifs_ids
+        logging.info(f" = Check database consistency between {db1} and {db2}")
 
-        motifs_ids = storeMotifIds(motif_ranks)
-        logging.info(f"{len(motifs_ids)} ids in motif database")
+        ids_db1 = self.getAllIdsFromDatabase(db1, motif_ranks)
+        ids_db2 = self.getAllIdsFromDatabase(db2, motif_ranks)
 
-        genome_ids = self.genomedb.getAllIds()
-        logging.info(f"{len(genome_ids)} ids in genome database")
-
+        logging.info(f"{len(ids_db1)} in {db1} database")
+        logging.info(f"{len(ids_db2)} in {db2} database")
+        
         #For id present in genome and not in motif, also display metadata
-        genome_not_motif = genome_ids.difference(motifs_ids)
-        if genome_not_motif: 
+
+        in_db1 = ids_db1.difference(ids_db2)
+        in_db2 = ids_db2.difference(ids_db1)
+        write_metadata = False
+        if db1 == "genome":
+            write_metadata = True
+            write_data = in_db1
+        elif db2 == "genome":
+            write_metadata = True
+            write_data = in_db2
+        
+        if write_metadata:
             out = open(metadata_out, "w")
             out.write("#fasta\ttaxid\tname\tgcf\taccession\n")
-            for id in genome_not_motif:
+            for id in write_data:
                 genome = self.genomedb.getFromID(id)
                 taxon = self.taxondb.getFromID(genome.taxon)
                 out.write(f'{genome.fasta_name}\t{taxon.taxid}\t{taxon.name}\t{genome.gcf_assembly if genome.gcf_assembly else "-"}\t{genome.accession_number if genome.accession_number else "-"}\n')
             out.close()
             
-        return motifs_ids.difference(genome_ids), genome_not_motif
+        return in_db1, in_db2
 
     def removeFromBlast(self, fastaList):
         logging.info("Remove from Blast database")
         for zFasta in fastaList:
             fasta_md5 = fastaHash(zFasta)
             genomElem = self.genomedb.get(fasta_md5)
+            if not genomElem:
+                logging.error(f"{zFasta} is not stored in genome database")
+                return
             for header, seq, _id  in zFastaReader(zFasta):
                 _header = f">{genomElem._id}|{header.replace(r'/^>//', '')}"
                 self.blastdb.remove(_header, seq)
-            
-            self.blastdb.close()
+        self.blastdb.close()
+
 
 
 

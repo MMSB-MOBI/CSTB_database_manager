@@ -55,6 +55,10 @@ class BlastDB ():
             if self.registry[k]:
                 return False
         return True
+
+    @property
+    def all_ids(self):
+        return set([header.split("|")[0].lstrip(">") for header in self.data.values()])
     
     def _indexDump(self):    
         fDump = f"{self.location}/{self.tag}.pkl"
@@ -199,6 +203,7 @@ class BlastDB ():
         else:
             self._delete_buffer.append( (header, sequence, key) )
 
+
     def _add_to_mfasta(self, overwrite = False):
         if overwrite:
             logging.info("Overwrite mfasta")
@@ -235,13 +240,13 @@ class BlastDB ():
             self.fastaBufferFile = self.fastaFile
         
         remove = False 
-
         if self._delete_buffer:
             remove = True
             self._remove_from_mfasta()
 
-        if self._buffer:
-            self._add_to_mfasta(overwrite = remove) 
+        logging.info(f"{len(self._delete_buffer)} sequences to delete")
+        logging.info(f"{len(self._buffer)} sequences to add or keep")
+        self._add_to_mfasta(overwrite = remove) 
         
     def clean(self):
         logging.info(f"Computing checksum of {self.fastaFile}")
@@ -252,6 +257,12 @@ class BlastDB ():
             self.fastaFile = gzip(self.fastaBufferFile)
             logging.info(f"Deleting main fasta record {self.fastaBufferFile}")
             os.remove(self.fastaBufferFile)
+
+    def clean_registry(self):
+        logging.info("No sequence are conserved, delete all blast files")
+        all_files = glob.glob(self.location + "/*")
+        for f in all_files:
+            os.remove(f)
     
     def _formatdb(self):
         stdRootPath = f"{self.location}/{self.tag}_build"
@@ -272,6 +283,11 @@ class BlastDB ():
         logging.info("closing")
         if not self._buffer and not self._delete_buffer:
             return
+
+        if self._delete_buffer and set(self.data.values()) == set([buf[0] for buf in self._delete_buffer]):
+            self.clean_registry()
+            return
+
         self.flush()
         self._formatdb()
         self.clean()

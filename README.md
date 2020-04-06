@@ -2,7 +2,13 @@
 
 CSTB database is a collection of 3 types of couchDB databases (taxon_db, genome_db, tree_db and crispr_motif) and some local index files in the system.
 
-## [Detailed documentation](https://mmsb-mobi.github.io/CSTB_database_manager/)
+## Summary
+* [Database structure](#database-structure)
+* [Add new genomes](#add-genome)
+* [Check database consistency](#check-consistency)
+* [Remove genomes](#remove-genome)
+
+<p id="database-structure">
 
 ## Database structure
 To initialize CSTB database via databaseManager, you must provide a json config file formatted like : 
@@ -77,11 +83,21 @@ Tree database just store taxonomic tree with correct format to be display by jqu
 
 ### Motifs databases
 
+WRITE THIS
+
 ### Blast database
+
+WRITE THIS
 
 ### Index database
 
-## Add a new Entry
+WRITE THIS
+
+</p>
+
+<p id="add-genome">
+
+## Add new genomes
 
 To add new entry, you will need config file (config.json) and tsv file (genomes.tsv) with list of genomes. To add in motifs databases, you will need a mapping file.
 
@@ -168,9 +184,15 @@ python add_genome.py --config config.json --genomes genomes.tsv --location <fast
 python add_genome.py --config config.json --genomes genomes.tsv --location <fasta_folder> --map mapping.json --index <index_file_dump_loc> --blast --tree
 ```
 
-## Check consistency in database
+</p>
 
-First, you need to get summary of motif database content by using [ms-db-manager
+<p id="check-consistency">
+
+## Check database consistency
+
+You can check database consistency by pair of collection
+
+If you want to check consistency in motif database, you need to get summary of motif database content by using [ms-db-manager
 ](https://github.com/glaunay/ms-db-manager). 
 
 We advice to first set the views if not already done : 
@@ -185,12 +207,28 @@ node index.js --target 'crispr_rc021_v[0-255] --rank ../crispr_rc021_species.jso
 ```
 Ranked json file will be used for checking consistency. 
 
-You can now check consistency with : 
+You can check consistency with : 
 ```
-python scripts/check_consistency.py -c config.json -m crispr_rc021_species.json
+python scripts/check_consistency.py [-h] -c <json file> --db1 <database> --db2 <database> [-m <json file>] [--metadata_out <tsv file>] 
+
+    -h, --help  show this help message and exit
+    -m <json file>, --motif_ranks <json file>  json file from ms-db-manager that stores organisms ids and number of occurences. Required if db1 or db2 is motif
+    -c <json file>, --config <json file>   json database config file
+    --metadata_out <tsv file>   Write metadata for ids found in genome and not in motif if exists. Required if db1 or db2 is genome
+    --db1 <database>   First database to check : genome | motif | blast | index
+    --db2 <database>   Second database to check : genome | motif | blast | index
 ```
 
-The script write results in standard output and will display ids present in motif collection and not in genome collection and opposite. Example of result : 
+**Examples** 
+* **Check consistency between motif and genome collection**
+
+```
+python scripts/check_consistency.py -c config.json --db1 motif --db2 genome -m crispr_rc021_species.json --metadata_out in_genomes_metadata.tsv
+```
+
+The script write results in standard output and will display ids present in motif collection and not in genome collection and opposite. It will also write metadata for genomes present in genome collection and not in motifs in --metadata_out file you provide. The format will be the same as input format for add_genome.py.
+
+Example of stdout result : 
 ```
 #Present in motif collection and not in genome collection
 
@@ -202,41 +240,61 @@ e7bdf2793c3942870a9f84806a684b19
 e7bdf2793c3942870a9f84806a6800cc
 ```
 
+* **Check consistency between genome and blast collection**
+```
+python scripts/check_consistency.py -c config.json --db1 blast --db2 genome --metadata_out in_genomes_metadata.tsv
+```
+
 If you have unconsistency in the database, it's your job to fix problem until consistency.
 
 **Example of cases** 
 * I have ids present in genome collection and not in motifs collection : 
-  * I want to add this genomes in motif collection : Re-use the add_genome.py script for this list of genomes, if fasta and taxon are the same, the same id will be reused in motif collection. If fasta is different, it will be considered as new and current version of the taxon. You can delete the old version if you want. 
-  * I want to delete this genomes from genome collection : Use remove_genome.py, see Remove genome section in this readme. 
+  * I want to add this genomes in motif collection : Re-use the `add_genome.py` script for this list of genomes, if fasta and taxon are the same, the same id will be reused in motif collection. If fasta is different, it will be considered as new and current version of the taxon. You can delete the old version if you want. 
+  * I want to delete this genomes from genome collection : Use `remove_genome.py`, see Remove genome section in this readme. 
 
 * I have ids present in motifs collection and not in genome collection : 
     * I want to delete this genomes from motif collection : use [ms-db-manager](https://github.com/glaunay/ms-db-manager)
 
-    * I want to add this genomes in genome collection : for now it's not possible to add the genomes and conserve the same ids. We advice to delete from motif collection and re-add, a new id will be used.
+    * I want to add this genomes in genome collection : for now it's not possible to add the genomes and conserve the same ids. We advice to delete from motif collection and re-add with `add_genome.py`, a new id will be used.
 
-## Remove genome
+* I have ids present in genome collection and not in blast collection : you can use `remove_genome.py` to remove genomes from genome collection or `add_genome.py` with `--blast` option to add genomes in blast collection. 
+* I have ids present in blast collection and not in genome collection : it's not possible to retrieve enough information from blast collection to add genomes in genomes collection. We advice to delete all blast database and re-all all genomes with `add_genome.py``
 
-You can **delete a genome from genome and taxon collections** the same way as adding a genome. 
+* I have ids present in genome collection and not in index collection : you can use `add_genome.py` with `--index` option to add genomes in index collection. For now, `remove_genome.py` don't remove from index collection but you can delete indexes manually from logged ids. 
+
+* I have ids present in index collection and not in genome collection : it's not possible to retrieve enough information. Delete the files in index and re-add genomes with `add_genome.py`
+
+</p>
+
+<p id="remove-genome">
+
+## Remove genomes
+
+You can **delete a genome from genome and taxon collections** the same way as adding a genome. The script will also **delete from blast database**.
 
 ```
-usage: remove_genome.py [-h] -l <file> -c <json file> -f <dir>
-  -h, --help            show this help message and exit
-  -l <file>, --metadata_list <file>
-                        tsv file with metadata for a list of genomes (columns in this order : fasta taxid name gcf accession)
-  -c <json file>, --config <json file>
-                        database config file
-  -f <dir>, --fasta_dir <dir>
-                        Directory where fasta file are stored
+Usage:
+    remove_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [ --min <start_index> --max <stop_index> ] [ --tree ]
+
+Options:
+    -h --help
+    --config <conf>  json config file (see config.json for format)
+    --genomes <genome_list> tsv file with list of genomes to remove (columns in this order : fasta taxid name gcf accession)
+    --location <fasta_folder> path to folder containing referenced fasta in tsv file
+    --min <start_index> position to read from (included) in the tsv file (header line does not count)
+    --max <stop_index>  position to read to   (included) in the tsv file (header line does not count)
+    --tree  Create taxonomic tree after deletion
 ```
 
 Then **delete the motifs** corresponding to genome with [ms-db-manager
-](https://github.com/glaunay/ms-db-manager) (part Delete all sgRNAs relative to a particular specie)
+](https://github.com/glaunay/ms-db-manager) (part Delete all sgRNAs relative to a particular specie). For now it's implemented to delete one per one :  
+```
+node index.js --target 'crispr_rc02_v[0-255]' --remove '<genome id>' --config config.json
+```
 
-Don't forget to **delete index files** in file system
+Don't forget to **delete index files** in file system (implement the logic ? )
 
-TO IMPLEMENT : blast ?? 
-
-
+### [Detailed documentation](https://mmsb-mobi.github.io/CSTB_database_manager/) for usage of the library
 
 
 

@@ -52,7 +52,7 @@ if __name__ == "__main__":
         
         #print(zHash(fastaFileList[-1]))
         #exit(1)
-        logging.info(f"> {fastaFileList}")
+        #logging.info(f"> {fastaFileList}")
         if not zExists(fastaFileList[-1]):
             raise ValueError(f'No fasta file at {fastaFileList[-1]}')
         
