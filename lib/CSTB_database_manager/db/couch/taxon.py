@@ -8,14 +8,13 @@ TaxonDoc = TypedDict("TaxonDoc",
 {"_id": str, "_rev": str, "genomeColl": List[str], "name": str, "taxid": Optional[int], "current": str, "date": str}, 
 total=False)
 
-@typechecked
 class TaxonDB(CSTB_database_manager.db.couch.virtual.Database):
     """Handle taxon database
     """
     def __init__(self, wrapper, db_name):
         super().__init__(wrapper, db_name)
 
-    def get(self, name: str, taxid: int = None) -> Optional['TaxonEntity']:
+    def get(self, name: str, taxid: int = None) -> Optional[TaxonEntity]:
         if taxid: 
             taxid_mango_query = {
                  "selector": {

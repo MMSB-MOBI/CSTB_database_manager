@@ -11,7 +11,6 @@ class PositivePutAnswer(TypedDict):
     id: str
     rev: str
 
-@typechecked
 class Database():
     """Handle couch database
     
@@ -79,6 +78,11 @@ class Database():
 
     @property
     def all_ids(self) -> Set[str]:
+        """All ids present in database
+        
+        :return: set of all ids
+        :rtype: Set[str]
+        """
         ids = set()
         all_docs = self.wrapper.couchGetRequest(f"{self.db_name}/_all_docs")
         for doc in all_docs["rows"] : 

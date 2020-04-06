@@ -196,7 +196,14 @@ class BlastDB ():
             return
         self._buffer.append( (header, sequence, key) )
 
-    def remove(self, header, sequence): 
+    def remove(self, header:str, sequence:str): 
+        """Remove sequence from blast database
+        
+        :param header: Sequence header
+        :type header: str
+        :param sequence: Nucleotide sequence
+        :type sequence: str
+        """
         key = hashSequence(sequence)
         if not key in self.data: 
             logging.warn(f"blast::remove:Fasta sequence {header} doesn't exist in blast database")
@@ -205,6 +212,11 @@ class BlastDB ():
 
 
     def _add_to_mfasta(self, overwrite = False):
+        """Add sequence in buffer to the multifasta. They can be add at the end of the multifasta or the multifasta can be rewrite.
+        
+        :param overwrite: overwrite multifasta or not, defaults to False
+        :type overwrite: bool, optional
+        """
         if overwrite:
             logging.info("Overwrite mfasta")
             fp = open (self.fastaBufferFile, 'w')
@@ -218,6 +230,8 @@ class BlastDB ():
         fp.close()
 
     def _remove_from_mfasta(self):
+        """Parse current multifasta and just keep sequence that are not in _delete_buffer in _buffer. The _buffer sequences can be then rewrite in a multifasta.
+        """
         to_delete_headers = [buf[0] for buf in self._delete_buffer]
         for header, seq, _id  in zFastaReader(self.fastaBufferFile):
             key = hashSequence(seq)
@@ -259,6 +273,8 @@ class BlastDB ():
             os.remove(self.fastaBufferFile)
 
     def clean_registry(self):
+        """Clean blast registry by deleting all files
+        """
         logging.info("No sequence are conserved, delete all blast files")
         all_files = glob.glob(self.location + "/*")
         for f in all_files:

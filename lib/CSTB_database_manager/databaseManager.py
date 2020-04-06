@@ -261,6 +261,22 @@ class DatabaseManager():
         return fasta_md5
 
     def removeGenomeFromGenomeAndTaxon(self, fasta: str, name: str, taxid: int = None, gcf: str = None, acc: str = None): 
+        """Remove a genome entry from genome and taxon collection. If the corresponding taxon contain only this genome, it is removed too. If not, it's just updated.
+        
+        :param fasta: Path to fasta file
+        :type fasta: str
+        :param name: Name of the taxon
+        :type name: str
+        :param taxid: NCBI taxid, defaults to None
+        :type taxid: int, optional
+        :param gcf: Gcf assembly accession number, defaults to None
+        :type gcf: str, optional
+        :param acc: Accession number, defaults to None
+        :type acc: str, optional
+        :raises error.ConsistencyError: Raise if their is problem of consistency between genome and taxon collection
+        :return: Deleted genome id
+        :rtype: str
+        """
         logging.info(f"= Remove genome\nfasta: {fasta}\n name : {name}\n taxid : {taxid}\n gcf : {gcf}\n acc : {acc}")
         try :
             fasta_md5 = fastaHash(fasta)
@@ -412,7 +428,16 @@ class DatabaseManager():
             r = self.wrapper.volDocAdd(d)
         return (sgRNA_data, uuid, r)
     
-    def addHeadersAndFastaName(self, fasta, gcf, acc):
+    def addHeadersAndFastaName(self, fasta, gcf = None, acc = None):
+        """Create for hack update to v2 format. Will update entries in genome collection to add fasta complete headers and fasta name.
+        
+        :param fasta: Path to fasta file
+        :type fasta: str
+        :param gcf: gcf assembly accession
+        :type gcf: str
+        :param acc: accession number
+        :type acc: str
+        """
         fasta_name = fasta.split("/")[-1]
         try :
             fasta_md5 = fastaHash(fasta)
@@ -437,7 +462,16 @@ class DatabaseManager():
             motifs_ids.add(species["specie"])
         return motifs_ids 
 
-    def getAllIdsFromDatabase(self, database:str, motif_ranks:Optional[str] = None):
+    def getAllIdsFromDatabase(self, database:str, motif_ranks:Optional[str] = None) -> Optional[Set[str]]:
+        """Get all ids from collection whatever collection is
+        
+        :param database: database to proceed
+        :type database: str (motif | genome | index | blast)
+        :param motif_ranks: path to json ranked species provided by ms-db-manager node service, defaults to None
+        :type motif_ranks: Optional[str], optional
+        :return: set of ids present in database
+        :rtype: Optional[Set[str]]
+        """
         if database == "motif":
             if not motif_ranks:
                 raise Exception("For motif database, you need to provide motif ranks previously computed")
@@ -505,7 +539,12 @@ class DatabaseManager():
             
         return in_db1, in_db2
 
-    def removeFromBlast(self, fastaList):
+    def removeFromBlast(self, fastaList: List[str]):
+        """Remove entries from blast database from fasta files
+        
+        :param fastaList: List of paths to fasta files
+        :type fastaList: List[str]
+        """
         logging.info("Remove from Blast database")
         for zFasta in fastaList:
             fasta_md5 = fastaHash(zFasta)

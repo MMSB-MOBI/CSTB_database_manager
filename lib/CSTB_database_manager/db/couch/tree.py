@@ -9,14 +9,21 @@ class TreeDB(CSTB_database_manager.db.couch.virtual.Database):
     def __init__(self, wrapper, db_name):
         super().__init__(wrapper, db_name)
 
-    def createNewTree(self, json_tree):
+    def createNewTree(self, json_tree:Dict) -> 'TreeEntity':
+        """Transform json taxonomic tree in TreeEntity
+        
+        :param json_tree: The json taxonomic tree
+        :type json_tree: Dict
+        :return: The TreeEntity object corresponding to database entry
+        :rtype: TreeEntity
+        """
         couch_doc = {
             "_id": "maxi_tree",
             "tree" : json_tree
         }
         return TreeEntity(self, couch_doc)
 
-    def getFromID(self, id: str) -> Optional['TreeEntity']:
+    def getFromID(self, id:str) -> Optional[TreeEntity]:
         doc = self.wrapper.couchGetDoc(self.db_name, id)
         if doc:
             return TreeEntity(self, doc)
