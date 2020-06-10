@@ -1,6 +1,6 @@
 import json, copy, pickle
 
-from typing import TypedDict, Tuple, Dict, Set, Optional
+from typing import TypedDict, Tuple, Dict, Set, Optional, List
 from typeguard import typechecked
 
 import pycouch.wrapper as wrapper
@@ -11,9 +11,7 @@ from CSTB_core.engine.wordIntegerIndexing import indexAndMayOccurence as compute
 from CSTB_core.engine.wordIntegerIndexing import getEncoding
 import CSTB_database_manager.db.couch.taxon as taxonDBHandler
 import CSTB_database_manager.db.couch.genome as genomeDBHandler
-import CSTB_database_manager.db.index as indexDBHandler
 import CSTB_database_manager.db.blast as blastDBHandler
-import CSTB_database_manager.engine.intersection as intersect
 
 import CSTB_database_manager.utils.error as error
 from CSTB_core.utils.io import fileHash as fastaHash
@@ -33,7 +31,6 @@ class ConfigType(TypedDict):
     genomedb_name: str
     treedb_name: str
     blastdb_path : str
-    indexdb_path : str
 
 @typechecked
 class DatabaseManager():
@@ -59,12 +56,6 @@ class DatabaseManager():
             self.blastdb = None
         else:
             self.blastdb = blastDBHandler.connect(config["blastdb_path"])
-
-        if not "indexdb_path" in config:
-            logging.warn("No index database specified")
-            self.indexdb = None
-        else:
-            self.indexdb = indexDBHandler.connect(config["indexdb_path"])
 
     def _load_config(self, config_file:str)-> ConfigType:
         with open(config_file) as f:

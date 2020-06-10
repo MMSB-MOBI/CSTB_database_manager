@@ -14,7 +14,7 @@ class TaxonDB(CSTB_database_manager.db.couch.virtual.Database):
     def __init__(self, wrapper, db_name):
         super().__init__(wrapper, db_name)
 
-    def get(self, name: str, taxid: int = None) -> Optional[TaxonEntity]:
+    def get(self, name: str, taxid: int = None):
         if taxid: 
             taxid_mango_query = {
                  "selector": {

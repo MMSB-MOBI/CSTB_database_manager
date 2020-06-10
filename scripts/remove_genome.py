@@ -33,12 +33,11 @@ if __name__ == "__main__":
 
     fastaFileList = []
     for (fasta, name, taxid, gcf, acc) in tsvReader(ARGS["--genomes"], x, y):
-        
-        fastaFileList.append(ARGS["--location"] + '/' + fasta)
-
-        if not zExists(fastaFileList[-1]):
-            raise ValueError(f'No fasta file at {fastaFileList[-1]}')
-
+        fasta_path = ARGS["--location"] + '/' + fasta
+        if not zExists(fasta_path):
+            logging.warn(f'No fasta file at {fasta_path}')
+            continue
+        fastaFileList.append(fasta_path)
     #First remove from blast, else it will be impossible to retrieve genome id
     logging.info("# Remove from Blast")
     db.removeFromBlast(fastaFileList)    
