@@ -1,3 +1,5 @@
+#!/software/mobi/crispr-manager/2.0.0/bin/python
+
 """Add genomes to taxon and genome databases
 
 Usage:
@@ -58,7 +60,6 @@ if __name__ == "__main__":
         
         logging.info(f"db.AddGenome({fastaFileList[-1]}, {name}, {taxid}, {gcf}, {acc})")           
         db.addGenome(fastaFileList[-1], name, taxid, gcf, acc)
-
 
     if ARGS["--map"]: 
         db.setMotifAgent(ARGS["--map"])

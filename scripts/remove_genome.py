@@ -1,3 +1,5 @@
+#!/software/mobi/crispr-manager/2.0.0/bin/python
+
 """Remove genome from database (except motif collection)
 
 Usage:
@@ -38,6 +40,7 @@ if __name__ == "__main__":
             logging.warn(f'No fasta file at {fasta_path}')
             continue
         fastaFileList.append(fasta_path)
+        
     #First remove from blast, else it will be impossible to retrieve genome id
     logging.info("# Remove from Blast")
     db.removeFromBlast(fastaFileList)    
