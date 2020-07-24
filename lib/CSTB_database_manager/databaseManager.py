@@ -549,9 +549,6 @@ class DatabaseManager():
                 self.blastdb.remove(_header, seq)
         self.blastdb.close()
 
-    def replicate(self):
-        print("REPLICATE")
-
 
 
 

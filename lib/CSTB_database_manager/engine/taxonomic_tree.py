@@ -29,7 +29,8 @@ class HomemadeTree:
         # Remove the taxon ID if it is present
         json = {"text": node.used_name if hasattr(node, "used_name") else node.sci_name}
         if node.is_leaf():
-            json["genome_uuid"] = node.genome_uuid
+            json["genome_uuid"] = node.genome_uuid 
+           
         # If node has children, create a list of it and traverse it, else do not create attribute
         # children and return the json string
         if node.children:
@@ -54,8 +55,8 @@ class HomemadeNode:
 
     def is_leaf(self):
         if self.children:
-            return True
-        return False
+            return False
+        return True
 
 
 def create_tree(dic_taxid, dic_others):
@@ -66,12 +67,26 @@ def create_tree(dic_taxid, dic_others):
     #Create first tree from taxids
     tree = ncbi.get_topology(list(dic_taxid.keys()))
     for node in tree.iter_descendants():
-        if int(node.name) in dic_taxid:
+        if int(node.name) in dic_taxid:    
             if node.children:
                 node.add_child(name=node.name)
             else:
                 node.add_feature("used_name", dic_taxid[int(node.name)]["name"])
                 node.add_feature("genome_uuid", dic_taxid[int(node.name)]["uuid"])
+    
+    #Check if taxid are all leaves
+    taxid_leaves = set([int(node.name) for node in tree.get_leaves()])
+    taxid_given = set(dic_taxid.keys())
+
+    not_in_leaves = taxid_given.difference(taxid_leaves) 
+    not_in_given = taxid_leaves.difference(taxid_given)
+
+    if not_in_leaves or not_in_given:
+        logging.error("Some error during tree construction due to taxid updates.")
+        logging.error(f"{not_in_leaves} {[dic_taxid[t] for t in not_in_leaves]} are in given taxid but not in tree leaves")
+        logging.error(f"{not_in_given} {ncbi.get_taxid_translator(list(not_in_given))} in tree leaves but not in given taxid")
+        logging.error("Correct manually taxid in your database !!")
+        exit()
 
     myTree = HomemadeTree(tree)
 
