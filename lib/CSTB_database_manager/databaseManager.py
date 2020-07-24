@@ -537,6 +537,7 @@ class DatabaseManager():
         :type fastaList: List[str]
         """
         logging.info("Remove from Blast database")
+        self.blastdb.set_remove_mode(True)
         for zFasta in fastaList:
             fasta_md5 = fastaHash(zFasta)
             genomElem = self.genomedb.get(fasta_md5)
@@ -547,6 +548,9 @@ class DatabaseManager():
                 _header = f">{genomElem._id}|{header.replace(r'/^>//', '')}"
                 self.blastdb.remove(_header, seq)
         self.blastdb.close()
+
+    def replicate(self):
+        print("REPLICATE")
 
 
 

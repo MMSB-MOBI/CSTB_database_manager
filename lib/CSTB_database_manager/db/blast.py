@@ -22,29 +22,87 @@ def connect(blastFolder):
         raise error.BlastConnectionError("Blast directory doesn't exist.")
     return BlastDB(blastFolder)
 
+class WritingBuffer():
+    def __init__(self, fasta_file, data, remove_mode = False, max_buffer = 1000):
+        self.remove_mode = remove_mode
+        self.max_buffer = max_buffer
+        self.nb_append = 0
+        self.writing_mode = "w" if remove_mode else "a"
+        self.initial_file = fasta_file
+        self.writing_file = fasta_file + ".tmp" if remove_mode else fasta_file
+        self._buffer = []
+        self._real_len = 0
+        self.data = data
+        
+    def append(self, append_elmt):
+        self.nb_append += 1 
+        self._buffer.append(append_elmt)
+        self._real_len += 1
+        if self.nb_append >= self.max_buffer:
+            self.write_buffer()
+            self.update_index()
+            self.reinit_buffer()
+
+    def write_buffer(self):
+        logging.info(f"Write {len(self)} seq")
+        with open(self.writing_file, self.writing_mode) as handle:
+            for t in self._buffer:
+                handle.write(t[0] + '\n')
+                handle.write(t[1] + '\n')
+        
+    def reinit_buffer(self):
+        self.writing_mode = "a"
+        self.nb_append = 0
+        self._buffer = []
+
+    def update_index(self):
+        for header, seq, hKey in self._buffer:
+            self.data[hKey] = header
+
+    def replace_tmp_file(self):
+        logging.info("Replace tmp file")
+        os.replace(self.writing_file, self.initial_file)
+    
+    def close(self):
+        self.write_buffer()
+        self.update_index()
+        if self.remove_mode:
+            self.replace_tmp_file()
+
+    def set_remove_mode(self, b):
+        if type(b) != bool:
+            raise Exception("bool is needed for set_remove_mode")
+        self.remove_mode = b
+        if b :
+            self.writing_mode = "w"
+            self.writing_file = self.initial_file + ".tmp"
+        else:
+            self.writing_mode = "a"
+            self.writing_file = self.initial_file
+
+    def __len__(self):
+        return self._real_len
+
 class BlastDB ():
     def __init__(self, blastFolder, compressed=False):
+        print("==== BLAST DB INIT")
         self.fastaAsArchive = compressed # By Default we will reject fasta under gz b/c I/O too slow        
         self.location = blastFolder
         self.registry = self._parsingDatabase()
-        self._buffer = []
-        self._delete_buffer = []
+        self.max_buffer = 100
         if self.empty:
             logging.warn(f"Database {self.tag} seems empty")
             self.data = {}
             self.checksum = None
-            return
+        else:
+            logging.info(f"blastdb::_parsingDatabase:Computing checksum for {self.fastaFile}...")
+            self.checksum = os.path.getsize(self.fastaFile)
+            self.data = self._index()
+            if not self.data:
+                raise error.BlastConnectionError("indexing Error")
 
-        logging.info(f"blastdb::_parsingDatabase:Computing checksum for {self.fastaFile}...")
-        # HACK TO speed DVL
-        #self.checksum = fileHash(self.fastaFile, noHeader=False, stripinSpace=False)
-        self.checksum = os.path.getsize(self.fastaFile)
-        self.data = self._index()
-        if not self.data:
-            raise error.BlastConnectionError("indexing Error")
-        
-        #print(self.registry)        
-        #print(f"Data :\n{self.data}")
+        self._buffer = self._create_writing_buffer()
+        self._delete_buffer = []
         
         
     @property
@@ -59,6 +117,9 @@ class BlastDB ():
     @property
     def all_ids(self):
         return set([header.split("|")[0].lstrip(">") for header in self.data.values()])
+
+    def set_remove_mode(self, b):
+        self._buffer.set_remove_mode(b)
     
     def _indexDump(self):    
         fDump = f"{self.location}/{self.tag}.pkl"
@@ -74,6 +135,23 @@ class BlastDB ():
         self.fastaFile = self._getFasta()
         _  = self._setRegistry()
         return _
+
+    def _create_writing_buffer(self):
+        print("=== Create writing buffer")
+        self.fastaBufferFile = None
+        # No previous fasta record
+        if not self.fastaFile:           
+            self.fastaBufferFile = f"{self.location}/{self.tag}.mfasta"
+            self.fastaFile =  self.fastaBufferFile
+        # Previous record is ziped
+        elif self.fastaAsArchive :
+            self.fastaBufferFile = gunzip(self.fastaFile)
+        # Previous record is flat
+        else :
+            self.fastaBufferFile = self.fastaFile
+
+        return WritingBuffer(self.fastaBufferFile, self.data)
+
 
     def _getTag(self):
         return os.path.basename(self.location)
@@ -208,7 +286,9 @@ class BlastDB ():
         if not key in self.data: 
             logging.warn(f"blast::remove:Fasta sequence {header} doesn't exist in blast database")
         else:
-            self._delete_buffer.append( (header, sequence, key) )
+            self._delete_buffer.append( (header, key) )
+
+        self._remove_from_mfasta()
 
 
     def _add_to_mfasta(self, overwrite = False):
@@ -233,7 +313,7 @@ class BlastDB ():
         """Parse current multifasta and just keep sequence that are not in _delete_buffer in _buffer. The _buffer sequences can be then rewrite in a multifasta.
         """
         to_delete_headers = [buf[0] for buf in self._delete_buffer]
-        for header, seq, _id  in zFastaReader(self.fastaBufferFile):
+        for header, seq, _id in zFastaReader(self.fastaBufferFile):
             key = hashSequence(seq)
             _header = f">{header}"
             if not _header in to_delete_headers: 
@@ -242,7 +322,7 @@ class BlastDB ():
     def flush(self):
         logging.info("flushing")
         self.fastaBufferFile = None
-        # No previsous fasta record
+        # No previous fasta record
         if not self.fastaFile:           
             self.fastaBufferFile = f"{self.location}/{self.tag}.mfasta"
             self.fastaFile =  self.fastaBufferFile
@@ -252,15 +332,16 @@ class BlastDB ():
         # Previous record is flat
         else :
             self.fastaBufferFile = self.fastaFile
-        
+
         remove = False 
         if self._delete_buffer:
             remove = True
             self._remove_from_mfasta()
 
-        logging.info(f"{len(self._delete_buffer)} sequences to delete")
-        logging.info(f"{len(self._buffer)} sequences to add or keep")
-        self._add_to_mfasta(overwrite = remove) 
+        logging.info(f"{len(self._delete_buffer)} sequences deleted")
+        logging.info(f"{len(self._buffer)} sequences added or updated")
+
+        #self._add_to_mfasta(overwrite = remove) 
         
     def clean(self):
         logging.info(f"Computing checksum of {self.fastaFile}")
@@ -290,10 +371,10 @@ class BlastDB ():
                 check_call(args, stdout=stdout, stderr=stderr, cwd=self.location)
     
     def updateIndex(self):
-        for header, seq, hKey in self._delete_buffer:
-            del self.data[hKey]
-        for header, seq, hKey in self._buffer:
-            self.data[hKey] = header
+        for header, hKey in self._delete_buffer:
+            try: del self.data[hKey]
+            except KeyError:
+                logging.warn(f"{hKey} already deleted from index")
 
     def close(self):
         logging.info("closing")
@@ -304,11 +385,12 @@ class BlastDB ():
             self.clean_registry()
             return
 
-        self.flush()
+        self._buffer.close()
+        #self.flush()
         self._formatdb()
         self.clean()
         self.updateIndex()
-        logging.info(f"blastDB::close: inserting {len(self._buffer)} fasta records before closing")
+        logging.info(f"blastDB::close: deleting {len(self._delete_buffer)} and inserting {len(self._buffer)} fasta records before closing")
         fName = self._indexDump() 
         logging.info(f"Index wrote to {fName}")
         
