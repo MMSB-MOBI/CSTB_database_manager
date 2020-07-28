@@ -1,3 +1,5 @@
+#!/software/mobi/crispr-manager/2.0.0/bin/python
+
 import argparse, sys, logging
 import CSTB_database_manager.databaseManager as dbManager
 logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(filename)s:%(lineno)s\t%(message)s')
