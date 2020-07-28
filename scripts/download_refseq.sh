@@ -22,6 +22,6 @@ ncbi-genome-download-runner.py -F fasta -l complete -R representative -o $OUTDIR
 
 echo "Concatenate reference and representative into $METADATA"
 echo -e "#fasta\ttaxid\tname\tgcf\taccession\tftp" > $METADATA
-tail -n +2 $METADATA.reference | awk -F "\t" '{split($23,array,"/")} {print array[length(array)] "\t" $8 "\t" $10 "\t" $1 "\t-\t"}' >> $METADATA
-tail -n +2 $METADATA.representative | awk -F  "\t" '{split($23,array,"/")} {print array[length(array)] "\t" $8 "\t" $10 "\t" $1 "\t-\t"}' >> $METADATA
+tail -n +2 $METADATA.reference | awk -F "\t" '{split($23,array,"/")} {print array[length(array)] "\t" $8 "\t" $10 "\t" $1 "\t-\t" $22}' >> $METADATA
+tail -n +2 $METADATA.representative | awk -F  "\t" '{split($23,array,"/")} {print array[length(array)] "\t" $8 "\t" $10 "\t" $1 "\t-\t" $22}' >> $METADATA
 
