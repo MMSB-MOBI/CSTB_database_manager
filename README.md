@@ -1,12 +1,14 @@
 # CSTB_database_manager
 
-CSTB database is a collection of 3 types of couchDB databases (taxon_db, genome_db, tree_db and crispr_motif) and some local index files in the system.
+CSTB database is a collection of 4 types of couchDB databases (taxon_db, genome_db, tree_db and crispr_motif) and some local index files in the system.
 
 ## Summary
 * [Database structure](#database-structure)
 * [Add new genomes](#add-genome)
 * [Check database consistency](#check-consistency)
 * [Remove genomes](#remove-genome)
+* [Replicate database](#replicate-database)
+* [Update database](#update-database)
 
 <p id="database-structure">
 
@@ -83,15 +85,53 @@ Tree database just store taxonomic tree with correct format to be display by jqu
 
 ### Motifs databases
 
-WRITE THIS
+Motifs database is a collection of 256 volumes, each one identified by the 4 first letters of sgRNA (for example, v0 contains sgRNA that begins with AAAA, v1 contains sgRNA that begins with AAAT etc...). 
+In each volume, there is one document per sgRNA. This document looks like this : 
+```
+{
+  "_id": "AAAAAAAAAAAAAAAAAAAAAGG",
+  "_rev": "4-93b04311132f6013137aa45044c36cd0",
+  "dd6cfb980c8a3659acffa4f0028d4566": {
+    "NZ_LS483488.1": [
+      "-(232981,233003)"
+    ]
+  },
+  "dd6cfb980c8a3659acffa4f002a38525": {
+    "NZ_CP038860.1": [
+      "-(2720441,2720463)"
+    ]
+  },
+  "dd6cfb980c8a3659acffa4f002aeea6f": {
+    "NC_007295.1": [
+      "+(857848,857870)"
+    ]
+  },
+  "dd6cfb980c8a3659acffa4f002ea7404": {
+    "NZ_LR214986.1": [
+      "+(132513,132535)"
+    ]
+  }
+}
+```
+Uuid keys corresponds to genomes uuid, associated with sgRNA position in each fasta sequence of the genome. 
 
 ### Blast database
 
-WRITE THIS
+Blast database is a classical blast database that contains all genomes. It's created by blast command line tool with `makeblastdb` and it's stored locally. 
 
 ### Index database
 
-WRITE THIS
+Index database is a local directory with sgRNA index for each organism. Indexes are int representation of sgRNA based on 2-bits encoding. There is one file per genome, called `<genome_uuid>.index` and each file contains some metadata informations and the list of int indexes with number of occurences. 
+
+```
+# 690382 23 twobits
+559513471 1
+660193231 1
+1119347359 1
+1137450847 1
+...
+```
+The header line shows the total number of words encoded, the nucleotide-length of the words and code used. The following lines are the int representation with the number of occurences. 
 
 </p>
 
@@ -135,7 +175,8 @@ GCF_000007365.1_ASM736v1_genomic.fna	198804	Buchnera aphidicola str. Sg (Schizap
 ### Usage
 
 ```
-add_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [--map <volume_mapper>] [--index <index_file_dump_loc>] [ --min <start_index> --max <stop_index> --cache <pickle_cache> ] [ --debug ] [ --size <batch_size> ] [ --tree ] [ --blast ]
+Usage:
+    add_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [--map <volume_mapper>] [--index <index_file_dump_loc>] [ --min <start_index> --max <stop_index> --cache <pickle_cache> ] [ --debug ] [ --size <batch_size> ] [ --tree ] [ --blast ] [ --force ]
 
 Options:
     -h --help
@@ -150,6 +191,7 @@ Options:
     --size <batch_size>  Maximal number of keys in a couchDB volume collection insert (default = 10000)
     --tree  Create taxonomic tree after insertion
     --debug  Set debug mode ON
+    --force  Force add to motif, blast and index databases
 ```
 
 ### Examples
@@ -274,7 +316,7 @@ You can **delete a genome from genome and taxon collections** the same way as ad
 
 ```
 Usage:
-    remove_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [ --min <start_index> --max <stop_index> ] [ --tree ]
+    remove_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [ --min <start_index> --max <stop_index> ] [ --tree ] [ --blast ]
 
 Options:
     -h --help
@@ -284,6 +326,7 @@ Options:
     --min <start_index> position to read from (included) in the tsv file (header line does not count)
     --max <stop_index>  position to read to   (included) in the tsv file (header line does not count)
     --tree  Create taxonomic tree after deletion
+    --blast  Remove from blast
 ```
 
 Then **delete the motifs** corresponding to genome with [ms-db-manager
@@ -292,9 +335,125 @@ Then **delete the motifs** corresponding to genome with [ms-db-manager
 node index.js --target 'crispr_rc02_v[0-255]' --remove '<genome id>' --config config.json
 ```
 
-Don't forget to **delete index files** in file system (implement the logic ? )
+Don't forget to **delete index files** in file system. 
 
-### [Detailed documentation](https://mmsb-mobi.github.io/CSTB_database_manager/) for usage of the library
+<p id="replicate-database">
+
+## Replicate database
+
+To have a save of your database, you can replicate each volume. The associated script will create new volume based on current volume name and the saving date. It's a general script that works for every couchDB database. 
+
+```
+usage: replicate_database.py [-h] [--db <str>] [--all] --url <str> [--bulk <int>]
+
+Replicate couchDB database
+
+optional arguments:
+  -h, --help    show this help message and exit
+  --db <str>    Replicate database(s) corresponding to this regular expression
+  --all         Replicate all databases in couchDB
+  --url <str>   couchDB endpoint
+  --bulk <int>  Number of replication to launch simultanously (default: 2)
+```
+
+**Example**
+```
+replicate_database.py --db "crispr_rc03_v[0-9]" --url "http://<username>:<password>@arwen-cdb.ibcp.fr:5984"  
+```
+Will replicate crispr_rc03_v0 to crispr_rc03_v9 of arwen-cdb
+
+</p>
+
+<p id="update-database">
+
+## Update database
+
+To have the latest refseq database version, you have to follow some steps : 
+
+### 1. Download new genomes 
+
+To do that, you need [ncbi-genome-download](https://github.com/cecilpert/ncbi-genome-download) tool (modified version based on [kblin tool
+](https://github.com/kblin/ncbi-genome-download)). 
+There's a module on arwen : 
+```
+module load ncbi-genome-download
+```
+
+To download new genomes : 
+```
+download_refseq.sh <output metadata> <output directory>
+```
+
+It will uses ncbi-genome-download to download representative and reference complete bacteria genomes in fasta format. If you provide an output directory with fasta already present, it will not re-download them. 
+It will write metadata file that you can directly provide to <add_genome.py> script. 
+
+**Example** 
+```
+download_refseq.sh metadata_reference_representative_27-07-20.tsv ../fasta_folder/
+```
+
+### 2. Update informations
+
+You can launch `update_database.py` to have informations about updated database stored in files. 
+
+```
+Usage:
+    update_database.py --current <metadata_file> --new <metadata_file>
+
+Options:
+    -h --help
+    --current <metadata_file> assembly_summary file for current version of database
+    --new <metadata_file> assembly_summary file for new version of database
+```
+
+**Example**
+```
+update_database.py --current ../../crispr_rc03/list_genomes.tsv --new metadata_reference_representative_27-07-20.tsv
+```
+
+On stdout, it will write summary of update : 
+```
+== 2886 common genomes
+== 1 updated genomes
+GCF_001442815.1 => GCF_001442815.2
+= updated genomes list in updated_genomes.tsv
+== 113 new genomes
+GCF_010731795.1
+GCF_000011705.1
+GCF_003952225.1
+....
+= new genomes list in new_genomes.tsv
+== 27 deprecated genomes
+GCF_000011485.1
+GCF_006542705.1
+GCF_002355995.1
+...
+= deprecated genomes list in deprecated_genomes.tsv
+``` 
+
+It created separated metadata files for each category that you can directly use with `add_genome.py` or `remove_genome.py` : `updated_genomes.tsv`, `new_genomes.tsv` and `deprecated_genomes.tsv`
+
+### 3. Add or remove genomes
+
+```
+add_genome.py --config ../config.json --genomes updated_genomes.tsv --location ../fasta_folder --map ../4letters_prefix_rule.json
+--index ../index --tree --blast
+```
+
+```
+add_genome.py --config ../config.json --genomes new_genomes.tsv --location ../fasta_folder --map ../4letters_prefix_rule.json
+--index ../index --tree --blast
+```
+
+If you want to remove deprecated genomes :
+```
+remove_genome.py --config ../config.json --genomes deprecated_genomes.tsv --location ../fasta_folder --tree --blast
+```
+You also need to delete them from index directory and motifs database (see [Remove genomes](#remove-genome) section.))
+
+</p>
+
+
 
 
 
