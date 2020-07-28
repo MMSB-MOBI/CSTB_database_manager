@@ -19,7 +19,7 @@ def store_metadata(f):
     f.readline()
     for l in f:
         l_split = l.split("\t")
-        metadata[l_split[3]] = {"fasta": l_split[0], "taxid": l_split[1], "name" : l_split[2], "accession" : l_split[3], "ftp" : l_split[4]}
+        metadata[l_split[3]] = {"fasta": l_split[0], "taxid": l_split[1], "name" : l_split[2], "accession" : l_split[4], "ftp" : l_split[5]}
     f.close()
     return metadata
 
