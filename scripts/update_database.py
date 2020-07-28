@@ -53,24 +53,24 @@ if __name__ == "__main__":
 
     if change_version:
         o = open("updated_genomes.tsv", "w")
-        o.write("#fasta\ttaxid\tname\tgcf\taccession\tftp\n")
+        o.write("#fasta\ttaxid\tname\tgcf\taccession\tftp")
         print(f"== {len(change_version)} updated genomes")
         for elmt in change_version:
             print(elmt["updated_str"])
             gcf_metadata = new_metadata[elmt["gcf"]]
-            o.write(f'{gcf_metadata["fasta"]}\t{gcf_metadata["taxid"]}\t{gcf_metadata["name"]}\t{elmt["gcf"]}\t{gcf_metadata["accession"]}\t{gcf_metadata["ftp"]}\n')
+            o.write(f'\n{gcf_metadata["fasta"]}\t{gcf_metadata["taxid"]}\t{gcf_metadata["name"]}\t{elmt["gcf"]}\t{gcf_metadata["accession"]}\t{gcf_metadata["ftp"]}')
         o.close()
         print(f"= updated genomes list in updated_genomes.tsv")
         
     if news:
         o = open("new_genomes.tsv", "w")
-        o.write("#fasta\ttaxid\tname\tgcf\taccession\tftp\n")
+        o.write("#fasta\ttaxid\tname\tgcf\taccession\tftp")
 
         print(f"== {len(news)} new genomes")
         for n in news:
             print(n)
             gcf_metadata = new_metadata[n]
-            o.write(f'{gcf_metadata["fasta"]}\t{gcf_metadata["taxid"]}\t{gcf_metadata["name"]}\t{n}\t{gcf_metadata["accession"]}\t{gcf_metadata["ftp"]}\n')
+            o.write(f'\n{gcf_metadata["fasta"]}\t{gcf_metadata["taxid"]}\t{gcf_metadata["name"]}\t{n}\t{gcf_metadata["accession"]}\t{gcf_metadata["ftp"]}')
         o.close()
         print(f"= new genomes list in new_genomes.tsv")
 
@@ -80,13 +80,13 @@ if __name__ == "__main__":
         
     if olds:
         o = open("deprecated_genomes.tsv", "w")
-        o.write("#fasta\ttaxid\tname\tgcf\taccession\tftp\n")
+        o.write("#fasta\ttaxid\tname\tgcf\taccession\tftp")
 
         print(f"== {len(olds)} deprecated genomes")
         for old in olds:
             print(old)
             gcf_metadata = current_metadata[old]
-            o.write(f'{gcf_metadata["fasta"]}\t{gcf_metadata["taxid"]}\t{gcf_metadata["name"]}\t{old}\t{gcf_metadata["accession"]}\t{gcf_metadata["ftp"]}\n')
+            o.write(f'\n{gcf_metadata["fasta"]}\t{gcf_metadata["taxid"]}\t{gcf_metadata["name"]}\t{old}\t{gcf_metadata["accession"]}\t{gcf_metadata["ftp"]}')
         o.close()
         print(f"= deprecated genomes list in deprecated_genomes.tsv")
     
