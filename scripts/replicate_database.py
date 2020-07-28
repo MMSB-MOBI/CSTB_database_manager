@@ -143,7 +143,7 @@ if __name__ == '__main__':
         confirm = input("I need y or n answer : ") 
 
     if confirm == "n":
-        exit()   
+        exit()
 
     bulks = create_bulks(db_names, ARGS.bulk)
     watch.setServerURL(ARGS.url)
