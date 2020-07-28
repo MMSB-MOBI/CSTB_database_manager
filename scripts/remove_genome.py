@@ -3,7 +3,7 @@
 """Remove genome from database (except motif collection)
 
 Usage:
-    remove_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [ --min <start_index> --max <stop_index> ] [ --tree ]
+    remove_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [ --min <start_index> --max <stop_index> ] [ --tree ] [ --blast ]
 
 Options:
     -h --help
@@ -13,6 +13,7 @@ Options:
     --min <start_index> position to read from (included) in the tsv file (header line does not count)
     --max <stop_index>  position to read to   (included) in the tsv file (header line does not count)
     --tree  Create taxonomic tree after deletion
+    --blast  Remove from blast
 
 """
 
@@ -35,25 +36,36 @@ if __name__ == "__main__":
 
     fastaFileList = []
     for (fasta, name, taxid, gcf, acc) in tsvReader(ARGS["--genomes"], x, y):
-        fasta_path = ARGS["--location"] + '/' + fasta
+        fasta_path = fasta
         if not zExists(fasta_path):
             logging.warn(f'No fasta file at {fasta_path}')
             continue
         fastaFileList.append(fasta_path)
         
     #First remove from blast, else it will be impossible to retrieve genome id
-    logging.info("# Remove from Blast")
-    db.removeFromBlast(fastaFileList)    
+    
+    if ARGS["--blast"]:
+        logging.info("# Remove from Blast")
+        db.removeFromBlast(fastaFileList)    
 
     logging.info("# Remove from Genome and Taxon")
+    o = open("removed_genomes.log", "w")
     for (fasta, name, taxid, gcf, acc) in tsvReader(ARGS["--genomes"], x, y):
-        fasta_path = ARGS["--location"] + '/' + fasta
+        fasta_path = fasta
         try : 
             deleted_id = db.removeGenomeFromGenomeAndTaxon(fasta_path, name, taxid, gcf, acc)
         except error.ConsistencyError as e:  
             logging.error(f"Can't remove your genome because of ConsistencyError\nReason : \n{e}")
+        if deleted_id:
+            o.write(deleted_id  + "\n")
+    o.close()
 
-        
+    logging.info("List of deleted ids in removed_genomes.log")
+
+    if ARGS["--tree"]:
+        db.createTree()
+    
+    
 
 
 
