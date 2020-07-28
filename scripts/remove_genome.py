@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     fastaFileList = []
     for (fasta, name, taxid, gcf, acc) in tsvReader(ARGS["--genomes"], x, y):
-        fasta_path = fasta
+        fasta_path = ARGS["--location"]  + "/" + fasta
         if not zExists(fasta_path):
             logging.warn(f'No fasta file at {fasta_path}')
             continue
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     logging.info("# Remove from Genome and Taxon")
     o = open("removed_genomes.log", "w")
     for (fasta, name, taxid, gcf, acc) in tsvReader(ARGS["--genomes"], x, y):
-        fasta_path = fasta
+        fasta_path = ARGS["--location"]  + "/" + fasta
         try : 
             deleted_id = db.removeGenomeFromGenomeAndTaxon(fasta_path, name, taxid, gcf, acc)
         except error.ConsistencyError as e:  
