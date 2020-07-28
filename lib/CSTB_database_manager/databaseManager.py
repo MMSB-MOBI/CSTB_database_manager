@@ -176,8 +176,10 @@ class DatabaseManager():
             logging.error(f"Can't add your entry because VersionError\nReason : \n{e}")
             return
 
-        genome_entity.store()
-        taxon_entity.store()
+        genome_return_status = genome_entity.store()
+        taxon_return_status = taxon_entity.store()
+
+        return genome_return_status
         
     def bind(self, genome, taxon):
         """Make the link between genome and taxon. Add genome uuid in taxon entry and taxon uuid in genome entry with consistency checks.

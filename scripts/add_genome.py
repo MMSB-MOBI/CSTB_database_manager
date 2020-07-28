@@ -3,7 +3,7 @@
 """Add genomes to taxon and genome databases
 
 Usage:
-    add_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [--map <volume_mapper>] [--index <index_file_dump_loc>] [ --min <start_index> --max <stop_index> --cache <pickle_cache> ] [ --debug ] [ --size <batch_size> ] [ --tree ] [ --blast ]
+    add_genome.py --config <conf> --genomes <genome_list> --location <fasta_folder> [--map <volume_mapper>] [--index <index_file_dump_loc>] [ --min <start_index> --max <stop_index> --cache <pickle_cache> ] [ --debug ] [ --size <batch_size> ] [ --tree ] [ --blast ] [ --force ]
 
 Options:
     -h --help
@@ -18,6 +18,7 @@ Options:
     --size <batch_size>  Maximal number of keys in a couchDB volume collection insert (default = 10000)
     --tree  Create taxonomic tree after insertion
     --debug  Set debug mode ON
+    --force  Force add to motif, blast and index databases
 
 """
 
@@ -59,17 +60,18 @@ if __name__ == "__main__":
             raise ValueError(f'No fasta file at {fastaFileList[-1]}')
         
         logging.info(f"db.AddGenome({fastaFileList[-1]}, {name}, {taxid}, {gcf}, {acc})")           
-        db.addGenome(fastaFileList[-1], name, taxid, gcf, acc)
+        return_status = db.addGenome(fastaFileList[-1], name, taxid, gcf, acc)
 
-    if ARGS["--map"]: 
-        db.setMotifAgent(ARGS["--map"])
-    
-    if ARGS["--map"] or ARGS["--index"]:
-        logging.info(f"Proceeding to the db.AddMotifs of {len(fastaFileList)} fasta")  
-        db.addFastaMotifs(fastaFileList, bSize , indexLocation, cacheLocation)
+    if return_status or ARGS["--force"]:
+        if ARGS["--map"]:
+            db.setMotifAgent(ARGS["--map"])
+        
+        if ARGS["--map"] or ARGS["--index"]:
+            logging.info(f"Proceeding to the db.AddMotifs of {len(fastaFileList)} fasta")  
+            db.addFastaMotifs(fastaFileList, bSize , indexLocation, cacheLocation)
 
-    if ARGS["--blast"]: 
-        db.addBlast(fastaFileList)
+        if ARGS["--blast"]: 
+            db.addBlast(fastaFileList)
 
     if ARGS["--tree"]:
         db.createTree()

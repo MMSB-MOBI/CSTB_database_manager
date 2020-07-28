@@ -141,8 +141,10 @@ class Entity():
         if not db_entry or self != db_entry:
            logging.info(f"Add document {self._id} in {self.container.db_name}")
            self.container.add(self.couchDoc)
+           return True
         else:
             logging.warn(f"Same document {self._id} already exists in {self.container.db_name}")
+            return False
 
     def remove(self):
         """Remove entity from database
