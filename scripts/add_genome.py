@@ -48,30 +48,28 @@ if __name__ == "__main__":
     if ARGS["--debug"]:
         db.setDebugMode()
 
-    fastaFileList = []
+    new_fasta = []
     for (fasta, name, taxid, gcf, acc) in tsvReader(ARGS["--genomes"], x, y):
         
-        fastaFileList.append(ARGS["--location"] + '/' + fasta)
-        
-        #print(zHash(fastaFileList[-1]))
-        #exit(1)
-        #logging.info(f"> {fastaFileList}")
-        if not zExists(fastaFileList[-1]):
-            raise ValueError(f'No fasta file at {fastaFileList[-1]}')
-        
-        logging.info(f"db.AddGenome({fastaFileList[-1]}, {name}, {taxid}, {gcf}, {acc})")           
-        return_status = db.addGenome(fastaFileList[-1], name, taxid, gcf, acc)
+        fasta_path = ARGS["--location"] + '/' + fasta
 
-    if return_status or ARGS["--force"]:
-        if ARGS["--map"]:
-            db.setMotifAgent(ARGS["--map"])
+        if not zExists(fasta_path):
+            raise ValueError(f'No fasta file at {fasta_path}')
         
-        if ARGS["--map"] or ARGS["--index"]:
-            logging.info(f"Proceeding to the db.AddMotifs of {len(fastaFileList)} fasta")  
-            db.addFastaMotifs(fastaFileList, bSize , indexLocation, cacheLocation)
+        logging.info(f"db.AddGenome({fasta_path}, {name}, {taxid}, {gcf}, {acc})")           
+        return_status = db.addGenome(fasta_path, name, taxid, gcf, acc)
+        if return_status or ARGS["--force"]:
+            new_fasta.append(fasta_path)
 
-        if ARGS["--blast"]: 
-            db.addBlast(fastaFileList)
+    if ARGS["--map"]:
+        db.setMotifAgent(ARGS["--map"])
+        
+    if ARGS["--map"] or ARGS["--index"]:
+        logging.info(f"Proceeding to the db.AddMotifs of {len(new_fasta)} fasta")  
+        db.addFastaMotifs(new_fasta, bSize , indexLocation, cacheLocation)
+
+    if ARGS["--blast"]: 
+        db.addBlast(new_fasta)
 
     if ARGS["--tree"]:
         db.createTree()
