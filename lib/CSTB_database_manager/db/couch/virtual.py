@@ -86,7 +86,7 @@ class Database():
         """
         ids = set()
         all_docs = self.wrapper.couchGetRequest(f"{self.db_name}/_all_docs")
-        for doc in all_docs["rows"] : 
+        for doc in all_docs["rows"]:
             ids.add(doc["id"])
         return ids
 

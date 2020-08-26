@@ -13,7 +13,7 @@ import CSTB_database_manager.db.couch.taxon as taxonDBHandler
 import CSTB_database_manager.db.couch.genome as genomeDBHandler
 import CSTB_database_manager.db.blast as blastDBHandler
 import CSTB_database_manager.db.couch.motifs as motifsDBHandler
-
+import CSTB_database_manager.db.index as indexDBHandler 
 
 import CSTB_database_manager.utils.error as error
 from CSTB_core.utils.io import fileHash as fastaHash
@@ -33,6 +33,7 @@ class ConfigType(TypedDict):
     genomedb_name: str
     treedb_name: str
     blastdb_path : str
+    indexdb_path: str
 
 @typechecked
 class DatabaseManager():
@@ -61,6 +62,12 @@ class DatabaseManager():
 
         if mapping_rules:
             self.motifsdb = motifsDBHandler.MotifsDB(self.wrapper, mapping_rules)
+
+        if not "indexdb_path" in config:
+            logging.warn("No index database specified")
+            self.indexdb = None
+        else:
+            self.indexdb = indexDBHandler.connect(config["indexdb_path"])
 
     def _load_config(self, config_file:str)-> ConfigType:
         with open(config_file) as f:
@@ -510,13 +517,13 @@ class DatabaseManager():
 
         ids_db1 = self.getAllIdsFromDatabase(db1, motif_ranks)
         ids_db2 = self.getAllIdsFromDatabase(db2, motif_ranks)
-
+      
         logging.info(f"{len(ids_db1)} in {db1} database")
         logging.info(f"{len(ids_db2)} in {db2} database")
         
         #For id present in genome and not in motif, also display metadata
-
         in_db1 = ids_db1.difference(ids_db2)
+        
         in_db2 = ids_db2.difference(ids_db1)
         write_metadata = False
         if db1 == "genome":
@@ -555,6 +562,26 @@ class DatabaseManager():
                 _header = f">{genomElem._id}|{header.replace(r'/^>//', '')}"
                 self.blastdb.remove(_header, seq)
         self.blastdb.close()
+
+    def getEncodedSgrnaWithGenomes(self):
+        motif_dic = {}
+        similarity_dic = {}
+        for index in list(self.indexdb.all_ids)[:100]:
+            f = open(self.indexdb.database_folder + "/" + index + ".index")
+            f.readline()
+            for l in f:
+                motif = int(l.split()[0])
+                if not motif in motif_dic:
+                    motif_dic[motif] = [motif]
+                else:
+                    for already_present_uuid in motif_dic[motif]:
+                        pair = (motif, already_present_uuid)
+                        if not pair in similarity_dic:
+                            similarity_dic[pair] = 1
+                        similarity_dic[pair] += 1
+            f.close()
+
+        return motif_dic, similarity_dic
 
 
 
