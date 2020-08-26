@@ -162,7 +162,15 @@ if __name__ == '__main__':
     else:
         print("== All databases successfully replicated")
     
-
+    final_log = TIMESTAMP + "_end.log"
+    with open(final_log, "w") as o:
+        if not FAILED:
+            o.write("All databases successfully replicated")
+        else:
+            o.write("Failed databases : \n")
+            for f in FAILED:
+                o.write(f + "\n")
+        
     #print("== Monitor replication")
     #repIDs = [rep_name for rep_name in to_insert]
     #watch.setServerURL(ARGS.url)
