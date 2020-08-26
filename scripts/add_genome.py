@@ -28,10 +28,13 @@ logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(filename)s:%(
 import CSTB_database_manager.databaseManager as dbManager
 from docopt import docopt
 from CSTB_core.utils.io import tsvReader, zExists
+import time
 
 #from CSTB_database_manager.utils.io import fileHash as zHash
 
 if __name__ == "__main__":
+
+    start = time.time()
     ARGS = docopt(__doc__, version="1.0.0")
 
     db = dbManager.DatabaseManager(ARGS["--config"])
@@ -73,6 +76,8 @@ if __name__ == "__main__":
 
     if ARGS["--tree"]:
         db.createTree()
+
+    logging.info(f"END in {time.time() - start}")
 
 """
 for i in `seq 0 255`
