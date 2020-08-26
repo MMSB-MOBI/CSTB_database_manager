@@ -362,6 +362,13 @@ replicate_database.py --db "crispr_rc03_v[0-9]" --url "http://<username>:<passwo
 ```
 Will replicate crispr_rc03_v0 to crispr_rc03_v9 of arwen-cdb
 
+You can check if all volumes are correctly replicated with `check_replication.py`
+```
+check_replication.py --prefix "crispr_rc03_v" --url "http://<username>:<password>@arwen-cdb.ibcp.fr:5984"
+```
+Will look if we have at least one backup with the same number of entries for volumes starting with crispr_rc03_v.  
+Write summary in stdout and write correct and incorrect backups on a log file.
+
 </p>
 
 <p id="update-database">
