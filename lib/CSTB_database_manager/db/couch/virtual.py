@@ -49,6 +49,7 @@ class Database():
 
         return doc["docs"]
     
+    @property
     def number_of_entries(self) -> int:
         """Get number of entries in database
         
