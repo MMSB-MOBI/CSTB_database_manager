@@ -12,6 +12,8 @@ from CSTB_core.engine.wordIntegerIndexing import getEncoding
 import CSTB_database_manager.db.couch.taxon as taxonDBHandler
 import CSTB_database_manager.db.couch.genome as genomeDBHandler
 import CSTB_database_manager.db.blast as blastDBHandler
+import CSTB_database_manager.db.couch.motifs as motifsDBHandler
+
 
 import CSTB_database_manager.utils.error as error
 from CSTB_core.utils.io import fileHash as fastaHash
@@ -37,7 +39,7 @@ class DatabaseManager():
     """
     Database manager object
     """
-    def __init__(self, config_file:str) -> None:
+    def __init__(self, config_file:str, mapping_rules:str = None) -> None:
         if not isinstance(config_file, str):
             raise TypeError(f"config_file must be str not {type(config_file)}")
         try:
@@ -56,6 +58,9 @@ class DatabaseManager():
             self.blastdb = None
         else:
             self.blastdb = blastDBHandler.connect(config["blastdb_path"])
+
+        if mapping_rules:
+            self.motifsdb = motifsDBHandler.MotifsDB(self.wrapper, mapping_rules)
 
     def _load_config(self, config_file:str)-> ConfigType:
         with open(config_file) as f:
