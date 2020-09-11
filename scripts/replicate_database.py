@@ -22,12 +22,24 @@ def eprint(*args, **kwargs):
 
 def args_gestion():
     parser = argparse.ArgumentParser(description = "Replicate couchDB database")
-    parser.add_argument("--db", metavar="<str>", help = "Replicate database(s) corresponding to this regular expression")
-    parser.add_argument("--all", help = "Replicate all databases in couchDB", action="store_true")
-    parser.add_argument("--url", metavar="<str>", help = "couchDB endpoint", required = True)
-    parser.add_argument("--bulk", metavar="<int>", help = "Number of replication to launch simultanously (default: 2)", default=2)
+    
+    subparsers = parser.add_subparsers(dest='subparser_name')
+    parser_backup = subparsers.add_parser('backup', help='Create backup for databases')
+    parser_backup.add_argument("--db", metavar="<str>", help = "Replicate database(s) corresponding to this regular expression")
+    parser_backup.add_argument("--all", help = "Replicate all databases in couchDB", action="store_true")
+    parser_backup.add_argument("--url", metavar="<str>", help = "couchDB endpoint", required = True)
+    parser_backup.add_argument("--bulk", metavar="<int>", help = "Number of replication to launch simultanously (default: 2)", default=2)
+
+    parser_restore = subparsers.add_parser('restore', help = "Restore database from a backup version")
+    parser_restore.add_argument("--version", type = int, help = "Which backup version do you want to restore ? 1 for the latest, 2 for the second latest... (default : 1)", default = 1)
+    parser_restore.add_argument("--db", metavar="<str>", help = "Replicate database(s) corresponding to this regular expression")
+    parser_restore.add_argument("--all", help = "Replicate all databases in couchDB", action="store_true")
+    parser_restore.add_argument("--url", metavar="<str>", help = "couchDB endpoint", required = True)
+    parser_restore.add_argument("--bulk", metavar="<int>", help = "Number of replication to launch simultanously (default: 2)", default=2)
+
 
     args = parser.parse_args()
+
     if args.db and args.all:
         print("You have to choose between --db or --all")
         exit()
@@ -45,7 +57,11 @@ def get_database_names():
 def get_replicate_doc(db_names, url):
     docs = {}
     for name in db_names:
-        target = name + "-bak" + TIMESTAMP
+        if ARGS.subparser_name == "backup" : 
+            target = name + "-bak" + TIMESTAMP
+        elif ARGS.subparser_name == "restore":
+            target = name.split("-")[0]
+        
         rep_id = "rep_" + target
         docs[rep_id] = {"source": url + "/" + name, "target" : url + "/" + target, "create_target": True, "continuous": False}
     return docs
@@ -116,29 +132,53 @@ def replication(databases):
         else:
             print("I finish replicate", rep)
 
+def get_version(backups, version:int):
+    single_backup = {}
+    for (db, backup) in backups.items(): 
+        timesteps = [bk.split("bak")[1] for bk in backup]
+        sorted_timesteps = sorted(timesteps, reverse = True)
+        
+        if version > len(sorted_timesteps):
+            print(f"WARN : impossible to restore {db} from version {version}. There's not enough version")
+
+        else:
+            backup_idx = timesteps.index(sorted_timesteps[version - 1])
+            single_backup[db] = backup[backup_idx]
+
+    return single_backup
+
 if __name__ == '__main__':
     ARGS = args_gestion()
-
 
     couchDB = couch_wrapper.Wrapper(ARGS.url)
     if not couchDB.couchPing():
         raise Exception("Can't ping database")
 
-    db_names = couchDB.couchDbList()
+    all_dbs = couchDB.couchDbList()
 
     if ARGS.db:
         regExp = get_regexp(ARGS.db)
-        db_names = [db_name for db_name in db_names if regExp.match(db_name)]
+        db_names = [db_name for db_name in all_dbs if regExp.match(db_name)]
+
+    if ARGS.subparser_name == "restore":
+        backups = {db : [all_db for all_db in all_dbs if all_db.startswith(db + "-")] for db in db_names}
+        single_backup = get_version(backups, ARGS.version)
+        db_names = list(single_backup.values())
+        print("Delete database to rewrite it")
+        for db in single_backup:
+            res = json.loads(requests.delete(ARGS.url + "/" + db).text)
+            if not "ok" in res:
+                raise Exception(f"Error while delete {db} : {res}")
 
     if not db_names:
-        print("No database to replicate")
+        print(f"No database to {ARGS.subparser_name}")
         exit()
     
-    print("== Databases to replicate:")
+    print(f"== Databases to {ARGS.subparser_name}:")
     for db_name in db_names:
         print(db_name)
 
-    confirm = input("Do you want to replicate this databases ? (y/n) ")
+    confirm = input(f"Do you want to {ARGS.subparser_name} this databases ? (y/n) ")
     while (confirm != "y" and confirm != "n"):
         confirm = input("I need y or n answer : ") 
 
