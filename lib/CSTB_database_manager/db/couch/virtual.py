@@ -90,6 +90,9 @@ class Database():
             ids.add(doc["id"])
         return ids
 
+    def get_from_uuid(self, uuid):
+        return self.wrapper.couchGetDoc(self.db_name, uuid)
+
 
 class Entity():
     """Represents couch entry
