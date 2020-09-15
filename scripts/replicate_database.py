@@ -37,8 +37,11 @@ def args_gestion():
     parser_restore.add_argument("--url", metavar="<str>", help = "couchDB endpoint", required = True)
     parser_restore.add_argument("--bulk", metavar="<int>", help = "Number of replication to launch simultanously (default: 2)", default=2)
 
-
     args = parser.parse_args()
+
+    if not args.subparser_name:
+        parser.print_help()
+        exit()
 
     if args.db and args.all:
         print("You have to choose between --db or --all")
