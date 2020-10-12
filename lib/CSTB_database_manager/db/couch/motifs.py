@@ -13,7 +13,7 @@ class MotifsDB():
         return list(mapping_dict.values())
 
     @property
-    def entries_per_volume(self):
+    def stats_per_volume(self):
         result_dic = {}
         for v in self.volumes_list:
             answer = self.wrapper.couchGetRequest(v)
@@ -23,9 +23,12 @@ class MotifsDB():
             if not "doc_count" in answer:
                 raise Exception(f"Can't have doc count for {v} : {answer}")
 
-            result_dic[v] = answer["doc_count"]
+            result_dic[v] = {"nb_motifs" : answer["doc_count"], "size":answer["sizes"]}
 
         return result_dic
+
+    def hasView(self):
+        pass
             
 
          
