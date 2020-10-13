@@ -49,6 +49,7 @@ def args_gestion():
     parser_seq.add_argument("-v", "--view-dir", help = "directory with single specie views results stored", required = True, type=str)
     parser_seq.add_argument("-f", "--fasta-dir", help = "fasta directory", required = True, type=str)
     parser_seq.add_argument("-c", "--config", metavar = "<json file>", help = "json database config file", required = True)
+    parser_seq.add_argument("-r", "--results", metavar = "<json file>", help = "where to write results as json", required = True, type=str)
 
 
     args = parser.parse_args()
@@ -126,17 +127,19 @@ if __name__ == "__main__":
         logging.info("Interrogate motif-broker...")
         mb_result = mb_request.get(all_sgrnas, filter_predicate = motif_broker_filter_genomes, genomes = [ARGS.uuid])
 
-        if mb_result == fasta_dic:
-            print("OK")
-        else:
-            print("NOT OK")
-        #Transform dic
+        fasta_sequences = set(fasta_dic.keys())
+        mb_sequences = set(mb_result.keys())
 
-        
+        fasta_not_in_mb = fasta_sequences.difference(mb_sequences)
+        mb_not_in_fasta = mb_sequences.difference(fasta_sequences)
 
-        #Eventually last step, check that number of sgRNA in index is ok
-        
-        print("OO")
+        results_json = {"fasta_not_collection": list(fasta_not_in_mb), "collection_not_fasta": list(mb_not_in_fasta)}
+        print("In fasta not in collection :", len(fasta_not_in_mb), "sequences")
+        print("In collection not in fasta :", len(mb_not_in_fasta), "sequences")
+
+        json.dump(results_json, open(ARGS.results, "w"))
+
+
 
     logging.info(f"END in {time.time() - start}")
 
