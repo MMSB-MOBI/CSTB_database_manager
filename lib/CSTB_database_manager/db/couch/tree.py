@@ -1,6 +1,7 @@
 from typeguard import typechecked
 from typing import TypedDict, Optional, Dict
 import CSTB_database_manager.db.couch.virtual
+import CSTB_database_manager.engine.taxonomic_tree as taxonomic_tree
 
 #TreeDoc = TypedDict("TreeDoc", {"_id": str, "_rev": str, "date" : str, "tree": Dict}, total=False)
 
@@ -34,9 +35,34 @@ class TreeEntity(CSTB_database_manager.db.couch.virtual.Entity):
     def __init__(self, container : 'TreeDB', couchDoc):
         super().__init__(container, couchDoc)
         self.tree = couchDoc["tree"]
+        self._tree_object = None
 
     def __eq__(self, other: 'TreeEntity') -> bool:
         return self.tree == other.tree
+
+    def _load_tree(self):
+        self._tree_object = taxonomic_tree.load_tree(self.tree)
+
+    def _rec_count(self, node, current_count):
+        current_count += 1
+
+        if not "children" in node:
+            return current_count
+
+        for child in node["children"]:
+            current_count = self._rec_count(child, current_count)
+            
+        return current_count
+
+
+    @property
+    def node_numbers(self):
+        return self._rec_count(self.tree, 0)
+    
+        
+
+
+
 
 
         

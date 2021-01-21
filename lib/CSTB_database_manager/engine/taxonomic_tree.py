@@ -39,7 +39,6 @@ class HomemadeTree:
                 json["children"].append(self.__get_json__(ch))
         return json
 
-
 @typechecked
 class HomemadeNode:
     def __init__(self, name, uuid = None):
@@ -57,6 +56,9 @@ class HomemadeNode:
         if self.children:
             return False
         return True
+
+    def get_leaves(self):
+        current_node = self
 
 
 def create_tree(dic_taxid, dic_others):
@@ -104,4 +106,23 @@ def load_ncbi(sql_file = "/mobi/group/databases/ete3/.etetoolkit/taxa.sqlite", t
         ncbi = NCBITaxa(dbfile = sql_file)
     return ncbi
 
+
+def _rec_load_tree(current_root):
+    node = HomemadeNode(current_root["text"], current_root.get("genome_uuid", None))
+    child_nodes = []
+
+    if not "children" in current_root:
+        return node
+
+    for child in current_root["children"]:
+        child_node = _rec_load_tree(child)
+        child_nodes.append(child_node)
+    
+    node.add_children(child_nodes)
+    return node
+    
+
+def load_tree(json_tree):
+    root = _rec_load_tree(json_tree)
+    print(root.children[1].children[0].genome_uuid)
     
