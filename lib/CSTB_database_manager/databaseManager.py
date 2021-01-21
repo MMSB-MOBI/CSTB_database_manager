@@ -497,6 +497,8 @@ class DatabaseManager():
                 raise Exception("Index database doesn't exit. Do you provide path in config ?")
             return self.indexdb.all_ids
 
+        if database == "taxon":
+            return self.taxondb.getGenomesUuid()
         return   
         
     def checkConsistency(self, db1: str, db2: str, motif_ranks:Optional[str] = None, metadata_out:Optional[str] = None) -> Tuple[Set[str], Set[str]]:
@@ -517,9 +519,15 @@ class DatabaseManager():
 
         ids_db1 = self.getAllIdsFromDatabase(db1, motif_ranks)
         ids_db2 = self.getAllIdsFromDatabase(db2, motif_ranks)
+
+        if not ids_db1:
+            logging.warn(f"No entries in {db1}")
+        
+        if not ids_db2:
+            logging.warn(f"No entries in {db2}")
       
-        logging.info(f"{len(ids_db1)} in {db1} database")
-        logging.info(f"{len(ids_db2)} in {db2} database")
+        #logging.info(f"{len(ids_db1)} in {db1} database")
+        #logging.info(f"{len(ids_db2)} in {db2} database")
         
         #For id present in genome and not in motif, also display metadata
         in_db1 = ids_db1.difference(ids_db2)

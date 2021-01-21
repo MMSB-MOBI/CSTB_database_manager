@@ -74,6 +74,15 @@ class TaxonDB(CSTB_database_manager.db.couch.virtual.Database):
             return TaxonEntity(self, doc)
         return None
 
+    def getGenomesUuid(self):
+        genomes_ids = set()
+        taxon_ids = self.all_ids
+        for t_id in self.all_ids:
+            taxon = self.getFromID(t_id)
+            genomes_ids.update(taxon.genomeColl)
+        return genomes_ids
+
+
 
 @typechecked
 class TaxonEntity(CSTB_database_manager.db.couch.virtual.Entity):

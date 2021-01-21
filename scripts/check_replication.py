@@ -12,13 +12,17 @@ def args_gestion():
     args.url = args.url.rstrip("/")
     return args   
 
-def get_backups(db_names, wrapper):
-    dic_backup = {}
+def get_sizes(db_names):
+    dic_size = {}
     for name in db_names:
-        pref = name.split("-")
-        if len(pref) == 1:
-            dic_backup[name] = wrapper.couchGetRequest(name)["doc_count"]
-    return dic_backup 
+        res = couchDB.couchGetRequest(name)
+        if "doc_count" in res:
+            dic_size[name] = res["doc_count"]
+        elif "error" in res and res["error"] == "not_found":
+            dic_size[name] = 0
+        else:
+            raise Exception(f"Error for getRequest on {name}. Response is {res}")
+    return dic_size
 
 if __name__ == "__main__":
     ARGS = args_gestion()
@@ -27,9 +31,11 @@ if __name__ == "__main__":
     if not couchDB.couchPing():
         raise Exception("Can't ping database")
 
-    db_names = [name for name in couchDB.couchDbList() if name.startswith(ARGS.prefix)]
 
-    db_sizes = get_backups(db_names, couchDB)
+    db_names = [name for name in couchDB.couchDbList() if name.startswith(ARGS.prefix)]
+    original_dbs = set([name.split("-")[0] for name in db_names])
+
+    db_sizes = get_sizes(original_dbs)
     correct_backup = []
     incorrect_backup = []
 
@@ -43,11 +49,11 @@ if __name__ == "__main__":
         backups_names = [name for name in db_names if name.split("-")[0] == db and "-" in name]
         for back in backups_names:
             backup_size = couchDB.couchGetRequest(back)["doc_count"]
-            if backup_size == db_sizes[db]:
+            if backup_size in [db_sizes[db] -1, db_sizes[db], db_sizes[db] + 1]: #Hack that works even if we have a view document. Needs to find a better way to do this !
                 correct = True
                 o.write(f"{db}\t{back}\tcorrect\t{db_sizes[db]}\t{backup_size}\n")
             else:
-                o.write(f"{db}\t{back}\tuncorrect\t{db_sizes[db]}\t{backup_size}\n")
+                o.write(f"{db}\t{back}\tincorrect\t{db_sizes[db]}\t{backup_size}\n")
         
         if correct:
             correct_backup.append(db)

@@ -27,6 +27,7 @@ class GenomeDB(CSTB_database_manager.db.couch.virtual.Database):
         doc = self.wrapper.couchPostDoc(self.db_name + "/_find", mango_query)
 
         if not doc['docs']:
+            logging.warn("Fasta not in genome database")
             return None
         if len(doc['docs']) > 1 : 
             raise error.DuplicateError(f'Fasta exists {len(doc["docs"])} times in genome database : {[doc["_id"] for doc in doc["docs"]]}')

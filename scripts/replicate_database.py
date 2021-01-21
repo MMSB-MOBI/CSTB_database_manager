@@ -37,8 +37,11 @@ def args_gestion():
     parser_restore.add_argument("--url", metavar="<str>", help = "couchDB endpoint", required = True)
     parser_restore.add_argument("--bulk", metavar="<int>", help = "Number of replication to launch simultanously (default: 2)", default=2)
 
-
     args = parser.parse_args()
+
+    if not args.subparser_name:
+        parser.print_help()
+        exit()
 
     if args.db and args.all:
         print("You have to choose between --db or --all")
@@ -147,6 +150,7 @@ def get_version(backups, version:int):
 
     return single_backup
 
+
 if __name__ == '__main__':
     ARGS = args_gestion()
 
@@ -160,20 +164,15 @@ if __name__ == '__main__':
         regExp = get_regexp(ARGS.db)
         db_names = [db_name for db_name in all_dbs if regExp.match(db_name)]
 
+    if not db_names:
+        print(f"No database to {ARGS.subparser_name}")
+        exit()
+
     if ARGS.subparser_name == "restore":
         backups = {db : [all_db for all_db in all_dbs if all_db.startswith(db + "-")] for db in db_names}
         single_backup = get_version(backups, ARGS.version)
         db_names = list(single_backup.values())
-        print("Delete database to rewrite it")
-        for db in single_backup:
-            res = json.loads(requests.delete(ARGS.url + "/" + db).text)
-            if not "ok" in res:
-                raise Exception(f"Error while delete {db} : {res}")
 
-    if not db_names:
-        print(f"No database to {ARGS.subparser_name}")
-        exit()
-    
     print(f"== Databases to {ARGS.subparser_name}:")
     for db_name in db_names:
         print(db_name)
@@ -184,6 +183,14 @@ if __name__ == '__main__':
 
     if confirm == "n":
         exit()
+
+    if ARGS.subparser_name == "restore":
+        print("Delete database to rewrite it")
+        for db in single_backup:
+            res = json.loads(requests.delete(ARGS.url + "/" + db).text)
+            if not "ok" in res:
+                raise Exception(f"Error while delete {db} : {res}")
+
 
     bulks = create_bulks(db_names, ARGS.bulk)
     watch.setServerURL(ARGS.url)

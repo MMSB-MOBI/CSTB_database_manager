@@ -24,7 +24,7 @@ class TreeDB(CSTB_database_manager.db.couch.virtual.Database):
         }
         return TreeEntity(self, couch_doc)
 
-    def getFromID(self, id:str):
+    def getTree(self, id:str = "maxi_tree"):
         doc = self.wrapper.couchGetDoc(self.db_name, id)
         if doc:
             return TreeEntity(self, doc)
