@@ -4,6 +4,7 @@ import argparse, sys, logging, json, time
 import CSTB_database_manager.databaseManager as dbManager
 import motif_broker_request.request as mb_request
 from CSTB_core.engine.word_detect import sgRNAfastaSearch
+from datetime import date
 
 logging.basicConfig(level = logging.INFO, format='%(levelname)s\t%(filename)s:%(lineno)s\t%(message)s')
 
@@ -45,11 +46,11 @@ def args_gestion():
     parser_org.add_argument("--db2", metavar = "<database>", help = "Second database to check : genome | motif | blast | index", required = True)
 
     parser_seq = subparsers.add_parser('sequences', help="Check consistency for one organism between motifs and fasta content")
-    parser_seq.add_argument("-u", "--uuid", help = "genome uuid", required = True, type=str)
+    parser_seq.add_argument("-l", "--random-log", help = "json file with random selection", required = True, type=str)
     parser_seq.add_argument("-v", "--view-dir", help = "directory with single specie views results stored", required = True, type=str)
     parser_seq.add_argument("-f", "--fasta-dir", help = "fasta directory", required = True, type=str)
     parser_seq.add_argument("-c", "--config", metavar = "<json file>", help = "json database config file", required = True)
-    parser_seq.add_argument("-r", "--results", metavar = "<json file>", help = "where to write results as json", required = True, type=str)
+    parser_seq.add_argument("-r", "--results", metavar = "<directory>", help = "directory to write individual results for each genome", required = True, type=str)
 
 
     args = parser.parse_args()
@@ -84,6 +85,45 @@ def args_gestion():
 
     return args
 
+def process_sequences(uuid, db, fasta_dir, view_dir, results_file):
+    start_process = time.time()
+    logging.info("Get fasta path from genome collection...")
+    genome_doc = db.genomedb.get_from_uuid(uuid)
+    if not genome_doc : 
+        raise Exception(f"{uuid} doesn't exist in genome collection {db.genomedb.db_name}")
+    fasta = genome_doc["fasta_name"]
+
+    logging.info("Search sgRNA in fasta...")
+    fasta_dic = sgRNAfastaSearch(fasta_dir + "/" + fasta, uuid)
+
+    #Get sgRNA from view
+    logging.info("Load species sgRNAs...")
+    all_sgrnas = load_sgrnas_from_view(f"{view_dir}/{uuid}.json")
+    logging.info(f"{len(all_sgrnas)} sgRNAs loaded") 
+
+    #Interrogate motif-broker with genome filtering
+    logging.info("Interrogate motif-broker...")
+    mb_result = mb_request.get(all_sgrnas, filter_predicate = motif_broker_filter_genomes, genomes = [uuid])
+
+    fasta_sequences = set(fasta_dic.keys())
+    mb_sequences = set(mb_result.keys())
+
+    fasta_not_in_mb = fasta_sequences.difference(mb_sequences)
+    mb_not_in_fasta = mb_sequences.difference(fasta_sequences)
+
+    results_json = {"fasta_not_collection": list(fasta_not_in_mb), "collection_not_fasta": list(mb_not_in_fasta)}
+    print("In fasta not in collection :", len(fasta_not_in_mb), "sequences")
+    print("In collection not in fasta :", len(mb_not_in_fasta), "sequences")
+
+    json.dump(results_json, open(results_file, "w"))
+
+
+    if len(fasta_not_in_mb) != 0 or len(mb_not_in_fasta) != 0:
+        return False, time.time() - start_process
+    
+    return True, time.time() - start_process
+    
+
 if __name__ == "__main__":
     ARGS = args_gestion()
     if not ARGS:
@@ -105,40 +145,25 @@ if __name__ == "__main__":
     
     elif ARGS.subparser_name == "sequences":
 
-        #Get fasta name from couch
-        #Get dic from fasta
+        random_selection = json.load(open(ARGS.random_log))
+        unchecked = {k:v for k,v in random_selection.items() if v["checking_results"] == "waiting"}
 
-        logging.info("Get fasta path from genome collection...")
-        genome_doc = db.genomedb.get_from_uuid(ARGS.uuid)
-        if not genome_doc : 
-            raise Exception(f"{ARGS.uuid} doesn't exist in genome collection {db.genomedb.db_name}")
-        fasta = genome_doc["fasta_name"]
-        #Check fastahash is good ?? 
+        for uuid in unchecked:
+            res,time_spend = process_sequences(uuid)
+            random_selection[uuid]["time"] = time_spend
+            random_selection[uuid]["results_date"] = str(date.today())
+            if res : 
+                random_selection[uuid]["checking_results"] = "ok"
+            else:
+                random_selection[uuid]["checking_results"] = "error"
 
-        logging.info("Search sgRNA in fasta...")
-        fasta_dic = sgRNAfastaSearch(ARGS.fasta_dir + "/" + fasta, ARGS.uuid)
+        json.dump(random_selection, open(ARGS.random_log, "w"))
+        logging.info(f"Updated checked status in {ARGS.random_log}")
+        logging.info(f"Individual results in {ARGS.results}")
 
-        #Get sgRNA from view
-        logging.info("Load species sgRNAs...")
-        all_sgrnas = load_sgrnas_from_view(f"{ARGS.view_dir}/{ARGS.uuid}.json")
-        logging.info(f"{len(all_sgrnas)} sgRNAs loaded") 
 
-        #Interrogate motif-broker with genome filtering
-        logging.info("Interrogate motif-broker...")
-        mb_result = mb_request.get(all_sgrnas, filter_predicate = motif_broker_filter_genomes, genomes = [ARGS.uuid])
 
-        fasta_sequences = set(fasta_dic.keys())
-        mb_sequences = set(mb_result.keys())
-
-        fasta_not_in_mb = fasta_sequences.difference(mb_sequences)
-        mb_not_in_fasta = mb_sequences.difference(fasta_sequences)
-
-        results_json = {"fasta_not_collection": list(fasta_not_in_mb), "collection_not_fasta": list(mb_not_in_fasta)}
-        print("In fasta not in collection :", len(fasta_not_in_mb), "sequences")
-        print("In collection not in fasta :", len(mb_not_in_fasta), "sequences")
-
-        json.dump(results_json, open(ARGS.results, "w"))
-
+        
 
 
     logging.info(f"END in {time.time() - start}")

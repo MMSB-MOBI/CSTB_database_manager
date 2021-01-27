@@ -230,7 +230,7 @@ python add_genome.py --config config.json --genomes genomes.tsv --location <fast
 
 <p id="check-consistency">
 
-## Check database consistency
+## Check database consistency (genome presence)
 
 You can check database consistency by pair of collection
 
@@ -305,6 +305,99 @@ If you have unconsistency in the database, it's your job to fix problem until co
 * I have ids present in genome collection and not in index collection : you can use `add_genome.py` with `--index` option to add genomes in index collection. For now, `remove_genome.py` don't remove from index collection but you can delete indexes manually from logged ids. 
 
 * I have ids present in index collection and not in genome collection : it's not possible to retrieve enough information. Delete the files in index and re-add genomes with `add_genome.py`
+
+## Check database consistency (sequences)
+
+Once the database is consistent regarding to genome presence, you can go further and check for one genome if motifs stored in database corresponds to motifs computed from fasta. There is a procedure to randomly select some of the genome and test on them : 
+### 1. Select random uuid 
+```python
+usage: organism_random_selection.py [-h] --config CONFIG --log LOG --list LIST
+                                    [-n N]
+
+Randomly select genomes uuid that are not already in log
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --config CONFIG  json config file (see config.json for format)
+  --log LOG        json file where to add new randomly selected
+  --list LIST      txt uuid final list
+  -n N             number of randomly selected genomes
+```
+```python
+organism_random_selection.py --config config.json --log random_selection.json --list random_selection_uuids.txt
+```
+If `random_selection.json` already exists, new random uuids will be add to it. 
+
+`random_selection.json` format : 
+```json
+{
+  "dd6cfb980c8a3659acffa4f002f0c056" : 
+  {
+    "selection_date": "2020-10-21", 
+    "checking_results": "waiting", 
+    "results_date" : "", 
+    "time": 0
+  }
+}
+```
+
+`checking_results` is `waiting` because we didn't launch the consistency computation yet. 
+
+### 2. Get sgRNA list for genomes from view 
+We need to construct view results for the selected genomes. Use [ms-db-manager
+](https://github.com/glaunay/ms-db-manager). 
+```bash
+for uuid in $(cat random_selection_uuids.txt); do 
+  node /software/mobi/ms-db-manager/1.0.0/build/index.js --config /software/mobi/ms-db-manager/1.0.0/config.json --find $uuid --target "crispr_rc03_v[0-255]"; 
+done
+```
+### 3. Compute consistency
+
+```python
+usage: check_consistency.py sequences [-h] -l RANDOM_LOG -v VIEW_DIR -f
+                                      FASTA_DIR -c <json file> -r <directory>
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -l RANDOM_LOG, --random-log RANDOM_LOG
+                        json file with random selection
+  -v VIEW_DIR, --view-dir VIEW_DIR
+                        directory with single specie views results stored
+  -f FASTA_DIR, --fasta-dir FASTA_DIR
+                        fasta directory
+  -c <json file>, --config <json file>
+                        json database config file
+  -r <directory>, --results <directory>
+                        directory to write individual results for each genome
+```
+
+```python
+check_consistency.py sequences -l random_selection.json -v views_results/single_species_201021 -f fasta_folder/ -c config.json -r consistency/sequences/201021
+```
+
+The script will take the uuid from `random_selection.json` which are in `waiting` state, get fasta from couch genome database, compute sgRNAs from this fasta and compure the motifs to those stored in couch motif database. 
+At the end, it will modify `random_selection.json` with new state ('ok' for consistency or 'error' for no consistency) and computation time. If you have an error state, you can check in details the list of motifs that are in fasta and not in motif collection or the opposite in the directory you provided with `-r`, under the name `<uuid>_consistency.json`
+
+Example of `random_selection.json` at the end of this step : 
+```json
+{
+  "dd6cfb980c8a3659acffa4f002f0c056": 
+  {
+    "selection_date": "2020-10-21", 
+    "checking_results": "ok", 
+    "results_date" : "2020-10-21", 
+    "time": 99.21318483352661
+  }
+}
+```
+
+Example of `<uuid>_consistency.json` (for state ok)
+```json
+  {
+    "fasta_not_collection": [], 
+    "collection_not_fasta": []
+  }
+```
 
 </p>
 

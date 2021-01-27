@@ -339,8 +339,8 @@ class DatabaseManager():
         """
         # Find all taxids
         try:
-            total_taxons = self.taxondb.number_of_entries()
-        except wrapper.CouchWrapperError as e:
+            total_taxons = self.taxondb.number_of_entries
+        except Exception as e:
             logging.error(f"CouchWrapperError when try to get number of entries\n{e}")
             return
 
