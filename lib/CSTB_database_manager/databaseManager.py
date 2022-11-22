@@ -34,6 +34,7 @@ class ConfigType(TypedDict):
     treedb_name: str
     blastdb_path : str
     indexdb_path: str
+    ete3_db: str
 
 @typechecked
 class DatabaseManager():
@@ -68,6 +69,8 @@ class DatabaseManager():
             self.indexdb = None
         else:
             self.indexdb = indexDBHandler.connect(config["indexdb_path"])
+
+        self.ete3_db_path = config['ete3_db']
 
     def _load_config(self, config_file:str)-> ConfigType:
         with open(config_file) as f:
@@ -382,7 +385,7 @@ class DatabaseManager():
             return
 
         # Create tree
-        tree = tTree.create_tree(dic_taxid, dic_others)
+        tree = tTree.create_tree(dic_taxid, dic_others, self.ete3_db_path)
         tree_json = tree.get_json()
         
         tree_entity = self.treedb.createNewTree(tree_json)

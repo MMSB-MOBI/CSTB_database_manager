@@ -61,20 +61,20 @@ class HomemadeNode:
         current_node = self
 
 
-def create_tree(dic_taxid, dic_others):
+def create_tree(dic_taxid, dic_others, ete3_db):
     try:
-        ncbi = load_ncbi()
+        ncbi = load_ncbi(ete3_db)
     except Exception as e:
         logging.error(f"Error when load ete3 ncbi\n{e}")
     #Create first tree from taxids
     tree = ncbi.get_topology(list(dic_taxid.keys()))
     for node in tree.iter_descendants():
-        if int(node.name) in dic_taxid:    
+        if int(node.name) in dic_taxid:
             if node.children:
                 node.add_child(name=node.name)
-            else:
-                node.add_feature("used_name", dic_taxid[int(node.name)]["name"])
-                node.add_feature("genome_uuid", dic_taxid[int(node.name)]["uuid"])
+            # else:
+            #     node.add_feature("used_name", dic_taxid[int(node.name)]["name"])
+            #     node.add_feature("genome_uuid", dic_taxid[int(node.name)]["uuid"])
     
     #Check if taxid are all leaves
     taxid_leaves = set([int(node.name) for node in tree.get_leaves()])
@@ -90,6 +90,10 @@ def create_tree(dic_taxid, dic_others):
         logging.error("Correct manually taxid in your database !!")
         exit()
 
+    for node in tree.get_leaves():
+        node.add_feature("used_name", dic_taxid[int(node.name)]["name"])
+        node.add_feature("genome_uuid", dic_taxid[int(node.name)]["uuid"])
+    
     myTree = HomemadeTree(tree)
 
     #Place taxon with no taxid under a new branch named "others"
@@ -99,11 +103,8 @@ def create_tree(dic_taxid, dic_others):
 
     return myTree
 
-def load_ncbi(sql_file = "/mobi/group/databases/ete3/.etetoolkit/taxa.sqlite", taxdump_file = "/mobi/group/databases/ete3/taxdump.tar.gz"): #Give them in config ? 
-    if not path.exists(sql_file):
-        ncbi = NCBITaxa(dbfile = sql_file, taxdump_file = taxdump_file)
-    else:
-        ncbi = NCBITaxa(dbfile = sql_file)
+def load_ncbi(sql_file): #Give them in config ? 
+    ncbi = NCBITaxa(dbfile=sql_file)
     return ncbi
 
 
